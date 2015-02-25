@@ -10,85 +10,90 @@
 #include <conio.h>
 #include <time.h>
 
-/* screen constants */
-#define SCREEN_MAX_R         21
-#define SCREEN_MAX_C         80
-#define L_PER_COL         6
-#define PACK_COLS        2    /* for display in pack select */
-#define LEVEL_COLS        9    /* for display in level select */
+/* Screen constants. */
+#define SCREEN_MAX_R        21
+#define SCREEN_MAX_C        80
+#define L_PER_COL           6
+#define PACK_COLS           2   /* Number of cols in pack select. */
+#define LEVEL_COLS          9   /* Number of cols in level select. */
 
-#define TIME_BETWEEN_FRAMES     150     /* milliseconds */
+#define TIME_BETWEEN_FRAMES     150     /* Milliseconds. */
 
-/* board values */
-#define BOARD_MAX_R         20
-#define BOARD_MAX_C         50
-#define EMPTY             0
-#define WALL             1
-#define GOAL             2
-#define PLAYER             3
-#define MOVING_BLOCK         8
-#define HOLE             9
-#define PLAYER_FALL_1         91
-#define PLAYER_FALL_2         92
+/* Board values. */
+#define BOARD_MAX_R         20  /* Maximum rows on the board */  
+#define BOARD_MAX_C         50  /* Maximum cols on the board */ 
+#define EMPTY               0   /* TODO: Replace this with enumerated type */
+#define WALL                1
+#define GOAL                2
+#define PLAYER              3
+#define MOVING_BLOCK        8
+#define HOLE                9
+#define PLAYER_FALL_1       91
+#define PLAYER_FALL_2       92
 
-/* player inputs */
-#define LEFT             'a'
-#define UP             'w'
-#define RIGHT             'd'
-#define DOWN             's'
-#define QUIT             'q'
-#define RESTART         'r'
+/* Player inputs. */
+#define LEFT                'a'
+#define UP                  'w'
+#define RIGHT               'd'
+#define DOWN                's'
+#define QUIT                'q'
+#define RESTART             'r'
 
-/* number of levels */
-#define MAX_LEVELPACKS         10
-#define MAX_LEVELS        50
+/* Number of levels. */
+#define MAX_LEVELPACKS      10
+#define MAX_LEVELS          50
 
-/* file constants */
-#define MAX_FILE_LEN         13
-#define FILE_NAME        "slider"
-#define SAVE_FILE        ".sav"
-#define LEVEL_FILE         ".lvl"
+/* File constants. */
+#define MAX_FILE_LEN        13
+#define FILE_NAME           "slider"
+#define SAVE_FILE           ".sav"
+#define LEVEL_FILE          ".lvl"
 
-/* other */
+/* Other. */
 #define MAX_NAME_LEN        15
-#define BEATEN            1
-#define ACED            2
-#define TRUE             1
-#define FALSE             0
+#define BEATEN              1
+#define ACED                2
+#define TRUE                1
+#define FALSE               0
 
-/* typedefines */
+/* Typedefines. */
 typedef int board_t[BOARD_MAX_R][BOARD_MAX_C];
 
 typedef struct {
-    board_t    board;            /* level layout */
-    int     rows;            /* number of rows in level */
-    int     cols;            /* number of columns in level */
-    int    p_row;            /* player starting row */
-    int     p_col;            /* player starting column */
-    int    moves;            /* min number of moves to beat level */
-    int    nmoves;            /* current moves */
-    int    moving_block_check;    /* true if the player is stationary */
+    board_t board;              /* Level layout. */
+    int     rows;               /* Number of rows in level. */
+    int     cols;               /* Number of columns in level. */
+    int     p_row;              /* Player starting row. */
+    int     p_col;              /* Player starting column. */
+    int     moves;              /* Min number of moves to beat level. */
+    int     nmoves;             /* Current moves. */
+    int     moving_block_check; /* True if the player is stationary, and
+                                 * shouldn't be able to push a block. */
 } level_t;
 
 typedef struct {
     int     data[MAX_LEVELS];
     char    sav_file[MAX_FILE_LEN];
-    int    nlevels;
+    int     nlevels;
 } save_t;
 
 typedef struct {
-    level_t level[MAX_LEVELS];    /* array holding levels */
-    int     nlevels;        /* number of levels */
-    char    name[MAX_NAME_LEN];    /* name of levelpack */
-    save_t    save;            /* save state */
+    level_t level[MAX_LEVELS];  /* Array holding levels. */
+    int     nlevels;            /* Number of levels. */
+    char    name[MAX_NAME_LEN]; /* Name of levelpack. */
+    save_t  save;               /* Save state. */
 } levelpack_t;
 
 typedef struct {
-    levelpack_t     pack[MAX_LEVELPACKS];
-    int        npacks;
+    levelpack_t pack[MAX_LEVELPACKS];
+    int         npacks;
 } all_packs_t;
 
-/* gameplay functions */
+/*
+ * Function Prototypes.
+ */
+
+/* Gameplay functions. */
 void menu(all_packs_t *all_packs);
 void pack_select(all_packs_t *all_packs);
 void level_select(levelpack_t *levelpack);
@@ -97,7 +102,7 @@ int move(level_t *lvl, char move);
 void hole(level_t *stored_lvl, level_t *lvl);
 void moving_block(level_t *lvl, char direction);
 
-/* display functions */
+/* Display functions. */
 void title_screen(void);
 void how_to_play(void);
 void disp_board(level_t *level);
@@ -107,19 +112,19 @@ void print_message_screen(char *msg[]);
 void print_level_select(char *name, save_t save);
 void print_pack_select(all_packs_t *all_packs);
 
-/* saving functions */
+/* Saving functions. */
 void read_save(save_t *save);
 void write_save(save_t save);
 void clear_save(all_packs_t *all_packs);
 
-/* level pack functions */
+/* Level pack functions. */
 void get_levels(all_packs_t *all_packs);
 int get_pack(levelpack_t *levelpack, FILE *fp);
 int set_board(levelpack_t *levelpack);
 void level_to_board(board_t board, board_t level);
 int all_beaten(save_t save);
 
-/* general functions */
+/* General functions. */
 void int_swap(int *p1, int *p2);
 void clear(void);
 void level_load_error(void);
@@ -127,36 +132,44 @@ void set_zero(int array[], int n);
 void itoa_2digit(int i, char *s);
 
 /*---------------------------------------------------------------------------*/
+/*
+ * Main Function.
+ */
 
 int
-main(int argc, char *argv[]) {
-    
-    /* set levelpack */
+main(int argc, char *argv[])
+{
+    /* Set levelpack. */
     all_packs_t all_packs;
     
+    /* Get levels from file. */
     get_levels(&all_packs);
     
+    /* Display the title screen. */
     title_screen();
     
+    /* Go to menu */
     menu(&all_packs);
     
     return 0;
 }
 
 /*---------------------------------------------------------------------------*/
-/* menu screen */
+/*
+ * Menu screen.
+ */
 
-#define HOW_TO_PLAY 'h'
-#define LEVEL_SELECT 's'
-#define CLEAR_SAVE 'c'
+#define HOW_TO_PLAY     'h'
+#define LEVEL_SELECT    's'
+#define CLEAR_SAVE      'c'
 
 void
-menu(all_packs_t *all_packs) {
-    
+menu(all_packs_t *all_packs) 
+{
     int junk;
     char player_choice = '\0';
     
-    /* pointer to string array for menu screen */
+    /* Pointer to string array for menu screen. */
     char *menu[] = {
 " ",
 " ",
@@ -172,58 +185,75 @@ menu(all_packs_t *all_packs) {
 "       q:  Quit game",
     NULL};
     
-    while(TRUE) {
-        
+    while(TRUE) 
+    {
+        /* Display message screen. */
         print_message_screen(menu);
         
-        /* get player input */
+        /* Get player input. */
         junk = scanf("%c", &player_choice);
         junk++;
         
-        if (player_choice == HOW_TO_PLAY) {
+        /* Enter sub-menu depending on choice. */ 
+        if (player_choice == HOW_TO_PLAY)
+        {
             how_to_play();
         }
-        else if (player_choice == LEVEL_SELECT) {
+        else if (player_choice == LEVEL_SELECT)
+        {
             pack_select(all_packs);
         }
-        else if (player_choice == CLEAR_SAVE) {
+        else if (player_choice == CLEAR_SAVE)
+        {
             clear_save(all_packs);
         }
-        else if (player_choice == QUIT) {
+        else if (player_choice == QUIT)
+        {
             return;
         }
         
     }
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* levelpack select screen */
+/*
+ * Levelpack select screen.
+ */
 
 void
-pack_select(all_packs_t *all_packs) {
-
+pack_select(all_packs_t *all_packs)
+{
     char player_quit;
     int junk, pack_sel;
     
-    while(TRUE) {
-                
+    while(TRUE)
+    {    
+        /* Display the packs available. */
         print_pack_select(all_packs);
         
-        /* set values to zero after every game */
+        /* Set values to zero after every game. */
         pack_sel = 0;
         player_quit = '\0';
         
-        /* get player input */
-        if(scanf("%d", &pack_sel)!=1) {
+        /* Get player input. */
+        if(scanf("%d", &pack_sel)!= 1)
+        {
             junk = scanf("%c", &player_quit);
             junk++;
-            if (player_quit == QUIT) {
+            
+            if (player_quit == QUIT) 
+            {
                 return;
             }
         }
         
-        /* play game if correct input given */
-        if (pack_sel>0 && pack_sel<=(all_packs->npacks)) {
+        /* Play game if correct input given. */
+        if (   pack_sel > 0 
+            && pack_sel <= (all_packs->npacks)) 
+        {
+            /* Move to level select screen. */
             level_select(&all_packs->pack[pack_sel-1]);
         }
     }    
@@ -231,54 +261,67 @@ pack_select(all_packs_t *all_packs) {
 
 
 /*---------------------------------------------------------------------------*/
-/* level select screen */
+/* 
+ * Level select screen. Player returns here once the current level is
+ * finished.
+ */
 
 void
-level_select(levelpack_t *levelpack) {
-    
+level_select(levelpack_t *levelpack) 
+{
     char player_quit;
     int junk, level_sel;
     
-    while(TRUE) {
-                
+    while(TRUE)
+    {
+        /* Display the levels available. */                
         print_level_select(levelpack->name, levelpack->save);
         
-        /* set values to zero after every game */
+        /* Set values to zero after every game. */
         level_sel = 0;
         player_quit = '\0';
         
-        /* get player input */
-        if(scanf("%d", &level_sel)!=1) {
+        /* Get player input. */
+        if(scanf("%d", &level_sel)!= 1)
+        {
             junk = scanf("%c", &player_quit);
             junk++;
-            if (player_quit == QUIT) {
+            
+            if (player_quit == QUIT) 
+            {
                 return;
             }
         }
         
-        /* play game if correct input given */
-        if (level_sel>0 && level_sel<=(levelpack->nlevels)) {
+        /* Play game if correct input given. */
+        if (   level_sel > 0 
+            && level_sel <= (levelpack->nlevels)) 
+        {
+            /* Use level_sel-1 as levels are listed to player starting from
+             * 1, rather than starting from 0 as they are in the arrays. */
             play(&levelpack->level[level_sel-1], 
-                &levelpack->save, level_sel);
+                &levelpack->save, level_sel-1);
         }
     }
 }
 
 /*---------------------------------------------------------------------------*/
-/* opens all levelpacks */
+/* 
+ * Opens all levelpacks. 
+ */
 
 void 
-get_levels(all_packs_t *all_packs) {
-    
+get_levels(all_packs_t *all_packs)
+{
     int i, pack = 0;
-    char     lvl_name[MAX_FILE_LEN],
-        sav_name[MAX_FILE_LEN],
-        pack_num[] = "00";
+    char    lvl_name[MAX_FILE_LEN],
+            sav_name[MAX_FILE_LEN],
+            pack_num[] = "00";
     FILE *fp;
     
-    for (i=0; i<MAX_LEVELPACKS; i++) {
-        
-        /* make .lvl and .sav filenames */
+    for (i = 0; i < MAX_LEVELPACKS; i++)
+    {
+        /* Make .lvl and .sav filenames. */
         strcpy(lvl_name, FILE_NAME);
         itoa_2digit(i, pack_num);
         strcat(lvl_name, pack_num);
@@ -288,25 +331,28 @@ get_levels(all_packs_t *all_packs) {
         strcat(lvl_name, LEVEL_FILE);
         strcat(sav_name, SAVE_FILE);
                 
-        /* open file */
-        if ((fp = fopen(lvl_name, "r")) != NULL) {
-            
-            if (!get_pack(&all_packs->pack[pack], fp)) {
+        /* Open file. */
+        if ((fp = fopen(lvl_name, "r")) != NULL)
+        {
+            /* Check if files are loaded successfully. */
+            if (!get_pack(&all_packs->pack[pack], fp))
+            {
                 level_load_error();
                 exit(EXIT_FAILURE);
             }    
             
-            /* close file */
+            /* Close file pointer. */
             fclose(fp);
             
-            /* copy save file name to levelpack */
+            /* Copy save file name to levelpack. */
             strcpy(all_packs->pack[pack].save.sav_file, sav_name);
             
-            /* copy nlevels */
+            /* Copy nlevels. */
             all_packs->pack[pack].save.nlevels = 
                 all_packs->pack[pack].nlevels;
             
-            /* set save file */
+            /* Set save file. First assume there is no save data, then look
+             * to see if save data exists. */
             set_zero(all_packs->pack[pack].save.data,
                 all_packs->pack[pack].nlevels);
             
@@ -316,48 +362,57 @@ get_levels(all_packs_t *all_packs) {
         }
     }
     
-    /* set total number of levelpacks */
+    /* Set total number of levelpacks. */
     all_packs->npacks = pack;
 
-    /* exit if no levels have been loaded */
-    if (!pack) {
+    /* Exit if no levels have been loaded. */
+    if (!pack) 
+    {
         level_load_error();
         exit(EXIT_FAILURE);
     }    
 }
 
 /*---------------------------------------------------------------------------*/
-/* opens a levelpack and copies the levels */
+/*
+ * Opens a levelpack and copies the levels.
+ */
 
 int
-get_pack(levelpack_t *levelpack, FILE *fp) {
-    
+get_pack(levelpack_t *levelpack, FILE *fp)
+{
     int i, j, level = 0;
-    int     rows = 0, 
+    int rows = 0, 
         cols = 0, 
         p_row = 0, 
         p_col = 0, 
         moves = 0,
         moving_block = 0;
             
-    /* get levelpack name */    
-    fscanf(fp, "%s", levelpack->name);    
+    /* Get levelpack name. */    
+    fscanf(fp, "%s", levelpack->name);
         
-    /* loop while data is available */
+    /* Loop while data is available. The information about the board is
+     * contained in the first row. */
     while (fscanf(fp, "%d%d%d%d%d%d", &rows, &cols, &p_row, &p_col,
-        &moves, &moving_block) == 6) {
-        
-        /* board too big */
-        if (rows>BOARD_MAX_R || cols>BOARD_MAX_C) {
+        &moves, &moving_block) == 6) 
+    {
+        /* Check if the board is too big. */
+        if (   rows > BOARD_MAX_R
+            || cols > BOARD_MAX_C)
+        {
             return FALSE;
         }
         
-        /* too many levels */
-        if (level >= MAX_LEVELS) {
+        /* Check if there are too many levels. */
+        if (level >= MAX_LEVELS)
+        {
+            /* Previous levels can still be used. Skip reading the following
+             * levels. */
             break;
         }
         
-        /* copy values into level */
+        /* Copy values into level. */
         levelpack->level[level].rows = rows;
         levelpack->level[level].cols = cols;
         levelpack->level[level].p_row = p_row;
@@ -366,288 +421,453 @@ get_pack(levelpack_t *levelpack, FILE *fp) {
         levelpack->level[level].nmoves = 0;
         levelpack->level[level].moving_block_check = moving_block;
         
-        for (i=0; i<rows; i++) {
-            for (j=0; j<cols; j++) {
+        for (i = 0; i < rows; i++)
+        {
+            for (j = 0; j < cols; j++)
+            {   
+                /* Get each individual level feature and copy into board. */
                 fscanf(fp, "%d", 
                     &levelpack->level[level].board[i][j]);
             }
         }
         
-        /* increment level */
+        /* Increment counter that tracks level number. */
         level++;
     }
         
-    /* set number of levels */
+    /* Set number of levels in the level pack. */
     levelpack->nlevels = level;
     
     return TRUE;
 }
     
 /*---------------------------------------------------------------------------*/
-/* plays the game. Gets player input, and calls move() for movement,
-set_board() for restart, or returns if quitting. */
+/* 
+ * Plays the game. First makes a local copy of the level that gets edited
+ * while playing. It looks for input from the player, calls move() to move the
+ * player accordingly.
+ */
 
 int
-play(level_t *level, save_t *save, int level_num) {
-    
+play(level_t *level, save_t *save, int level_num)
+{
     char direction = '\0';
     int val, check;
-    level_t currentlvl = *level;     /* current playing board */
+    
+    /* Make a local copy of the chosen level, so that it can be edited
+     * without changing the actual level. */
+    level_t currentlvl = *level;
         
     disp_board(&currentlvl);
+    
+    /* Clear the input buffer. */
     clear();
     
-    /* get input for player */
-    while ((direction = getch())) {
-    
+    /* Get input for player without displaying to the screen. */
+    while (direction = getch())
+    {
         check = TRUE;
         
-        /* another move */
-        currentlvl.nmoves++;
+        /* Another move has occurred, so increment move counter. */
+        if(    direction == LEFT
+            || direction == RIGHT
+            || direction == UP
+            || direction == DOWN)
+        {
+            currentlvl.nmoves++;
+        }
         
-        /* check if player has quit */
-        if (direction == QUIT) {
+        /* Check if player has quit. */
+        if (direction == QUIT)
+        {
             return 0;
         }
     
-        /* check if player restarted */
-        if (direction == RESTART) {
+        /* Check if player restarted. */
+        if (direction == RESTART)
+        {
             currentlvl = *level;
         }
             
-        /* move until wall (or goal) is reached */
-        while (TRUE) {
+        /* Move until wall (or goal) is reached. */
+        while (TRUE)
+        {
             val = move(&currentlvl, direction);
             
-            /* check for valid move */
-            if (val == 0) {
+            /* Check to see if movement has ended. */
+            if (val == 0)
+            {
+                /* Player is stationary, so moving block check is true. */
                 currentlvl.moving_block_check = TRUE;
                 break;
             }
             
-            /* reset moving block check if there has been a
-            successful move */
+            /* Player is moving, so they are allowed to push a moving block.
+             * Therefore set moving_block_check to true. */
             currentlvl.moving_block_check = FALSE;
             
-            /* check for goal */
-            if (val == GOAL) {
+            /* Check to see if the goal has been reached */
+            if (val == GOAL)
+            {
                 disp_board(&currentlvl);
                 Sleep(1000);
                 
-                /* edit save file */
-                if (currentlvl.nmoves <= level->moves) {
-                    save->data[level_num-1] = ACED;
+                /* Edit save file. */
+                if (currentlvl.nmoves <= level->moves)
+                {
+                    save->data[level_num] = ACED;
                 }
-                else if (save->data[level_num-1] != ACED) {
-                    save->data[level_num-1] = BEATEN;
+                else if (save->data[level_num] != ACED)
+                {
+                    save->data[level_num] = BEATEN;
                 }
                 write_save(*save);
                 
+                /* Display victory screen. */
                 victory_screen();
+                
                 return GOAL;
             }
-            /* check for hole */
-            if (val == HOLE) {
+            
+            /* Check to see if player has falling in a hole. */
+            if (val == HOLE)
+            {   
                 hole(level, &currentlvl);
                 check = FALSE;
+                
                 break;
             }
             
-            /* check for moving block */
-            if (val == MOVING_BLOCK) {
+            /* Check for moving block */
+            if (val == MOVING_BLOCK)
+            {
                 moving_block(&currentlvl, direction);
                 check = FALSE;
+                
+                /* Player is now stationary next to moved block, therefore
+                 * moving_block_check is true */
                 currentlvl.moving_block_check = TRUE;
+                
                 break;
             }
                         
-            /* display moves */
+            /* Display moves */
             disp_board(&currentlvl);
             Sleep(TIME_BETWEEN_FRAMES);
             
-            /* do not need to display screen again */
+            /* Do not need to display screen again. */
             check = FALSE;
         }
-        /* clear board and display again if no valid move */
-        if (check) {
+        
+        /* Clear board and display again if no valid move. */
+        if (check)
+        {
             disp_board(&currentlvl);
         }
     }
+    
     return 0;
 }
 
 /*---------------------------------------------------------------------------*/
-/* takes input direction and checks if player can move. swaps positions if
-move is possible - FALSE return means no move */
+/*
+ * Takes input direction and checks if the player can move. Swaps positions if
+ * a move is possible - FALSE return means no move occurred. */
 
 int
-move(level_t *lvl, char move) {
-    
-    /* move up */
-    if (move == UP) {
-        /* check for space */
-        if (lvl->board[lvl->p_row-1][lvl->p_col] == EMPTY) {
+move(level_t *lvl, char move)
+{
+    /* Check to see if the player has moved up. */
+    if (move == UP)
+    {
+        /* Check to see if there is space next to player. */
+        if (lvl->board[lvl->p_row-1][lvl->p_col] == EMPTY)
+        {
+            /* As there is empty space next to the player, move player by
+             * swapping the player and the empty space. */
             int_swap(&lvl->board[lvl->p_row-1][lvl->p_col],
                 &lvl->board[lvl->p_row][lvl->p_col]);
+            
+            /* Adjust players position. */
             lvl->p_row -= 1;
+            
             return TRUE;
         }
-        /* check for wall */
-        if (lvl->board[lvl->p_row-1][lvl->p_col] == WALL) {
+        
+        /* Check to see if there is a wall next to the player. */
+        if (lvl->board[lvl->p_row-1][lvl->p_col] == WALL)
+        {
             return FALSE;
         }
-        /* check for goal */
-        if (lvl->board[lvl->p_row-1][lvl->p_col] == GOAL) {
+        
+        /* Check to see if the player has made it to the goal. */
+        if (lvl->board[lvl->p_row-1][lvl->p_col] == GOAL)
+        {
+            /* Move the player onto the goal. */
             lvl->board[lvl->p_row-1][lvl->p_col] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
+            lvl->p_row -= 1;
+            
             return GOAL;
         }
-        /* check for end of board */
-        if (lvl->board[lvl->p_row-1][lvl->p_col] == HOLE) {
+        
+        /* Check to see if the player has fallen into a hole. */
+        if (lvl->board[lvl->p_row-1][lvl->p_col] == HOLE)
+        {   
+            /* Move player onto hole. */
             lvl->board[lvl->p_row-1][lvl->p_col] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
             lvl->p_row -= 1;
+            
             return HOLE;
         }
-        /* check for moving block */
-        if (lvl->board[lvl->p_row-1][lvl->p_col] == MOVING_BLOCK) {
-            if (lvl->p_row-2 >= 0 && 
-                lvl->board[lvl->p_row-2][lvl->p_col] == EMPTY
-                && lvl->moving_block_check == FALSE) {
-                
+        
+        /* Check for a moving block. */
+        if (lvl->board[lvl->p_row-1][lvl->p_col] == MOVING_BLOCK)
+        {
+            /* To push a moving block, there must be space on the board,
+             * and that space must be empty. */
+            if (   lvl->p_row-2 >= 0
+                && lvl->board[lvl->p_row-2][lvl->p_col] == EMPTY
+                && lvl->moving_block_check == FALSE)
+            {
+                /* Push the block back by swapping its position. */
                 int_swap(&lvl->board[lvl->p_row-2][lvl->p_col],
-                &lvl->board[lvl->p_row-1][lvl->p_col]);
+                    &lvl->board[lvl->p_row-1][lvl->p_col]);
+                
                 return MOVING_BLOCK;
             }
-            else {
+            
+            /* If there is no space to push the block, it acts like a wall. */
+            else
+            {
                 return FALSE;
             }
         }
     }
-    /* move down */
-    if (move == DOWN) {
-        /* check for space */
-        if (lvl->board[lvl->p_row+1][lvl->p_col] == EMPTY) {
+    
+    /* Check to see if the player has moved down. */
+    if (move == DOWN)
+    {
+        /* Check to see if there is space next to player. */
+        if (lvl->board[lvl->p_row+1][lvl->p_col] == EMPTY)
+        {
+            /* As there is empty space next to the player, move player by
+             * swapping the player and the empty space. */
             int_swap(&lvl->board[lvl->p_row+1][lvl->p_col],
                 &lvl->board[lvl->p_row][lvl->p_col]);
+            
+            /* Adjust players position. */
             lvl->p_row += 1;
+            
             return TRUE;
         }
-        /* check for wall */
-        if (lvl->board[lvl->p_row+1][lvl->p_col] == WALL) {
+
+        /* Check to see if there is a wall next to the player. */
+        if (lvl->board[lvl->p_row+1][lvl->p_col] == WALL)
+        {
             return FALSE;
         }
-        /* check for goal */
-        if (lvl->board[lvl->p_row+1][lvl->p_col] == GOAL) {
+        
+        /* Check to see if the player has made it to the goal. */
+        if (lvl->board[lvl->p_row+1][lvl->p_col] == GOAL)
+        {
+            /* Move the player onto the goal. */
             lvl->board[lvl->p_row+1][lvl->p_col] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
+            lvl->p_row += 1;
+            
             return GOAL;
         }
-        /* check for end of board */
-        if (lvl->board[lvl->p_row+1][lvl->p_col] == HOLE) {
+        
+        /* Check to see if the player has fallen into a hole. */
+        if (lvl->board[lvl->p_row+1][lvl->p_col] == HOLE)
+        {
+            /* Move player onto hole. */
             lvl->board[lvl->p_row+1][lvl->p_col] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
             lvl->p_row += 1;
             return HOLE;
         }
-        /* check for moving block */
-        if (lvl->board[lvl->p_row+1][lvl->p_col] == MOVING_BLOCK) {
-            if (lvl->p_row+2 < lvl->rows && 
-                lvl->board[lvl->p_row+2][lvl->p_col] == EMPTY
-                && lvl->moving_block_check == FALSE) {
-                
+        
+        /* Check for a moving block. */
+        if (lvl->board[lvl->p_row+1][lvl->p_col] == MOVING_BLOCK)
+        {
+            /* To push a moving block, there must be space on the board,
+             * and that space must be empty. */
+            if (   lvl->p_row+2 < lvl->rows
+                && lvl->board[lvl->p_row+2][lvl->p_col] == EMPTY
+                && lvl->moving_block_check == FALSE)
+            {
+                /* Push the block back by swapping its position. */                
                 int_swap(&lvl->board[lvl->p_row+2][lvl->p_col],
-                &lvl->board[lvl->p_row+1][lvl->p_col]);
+                    &lvl->board[lvl->p_row+1][lvl->p_col]);
+                
                 return MOVING_BLOCK;
             }
-            else {
+            
+            /* If there is no space to push the block, it acts like a wall. */
+            else
+            {
                 return FALSE;
             }
         }
     }
-    /* move left */
-    if (move == LEFT) {
-        /* check for space */
-        if (lvl->board[lvl->p_row][lvl->p_col-1] == EMPTY) {
+    
+    /* Check to see if the player has moved left. */
+    if (move == LEFT)
+    {
+        /* Check to see if there is space next to player. */
+        if (lvl->board[lvl->p_row][lvl->p_col-1] == EMPTY)
+        {
+            /* As there is empty space next to the player, move player by
+             * swapping the player and the empty space. */
             int_swap(&lvl->board[lvl->p_row][lvl->p_col-1],
                 &lvl->board[lvl->p_row][lvl->p_col]);
+            
+            /* Adjust players position. */
             lvl->p_col -= 1;
             return TRUE;
         }
-        /* check for wall */
-        if (lvl->board[lvl->p_row][lvl->p_col-1] == WALL) {
+        
+        /* Check to see if there is a wall next to the player. */
+        if (lvl->board[lvl->p_row][lvl->p_col-1] == WALL)
+        {
             return FALSE;
         }
-        /* check for goal */
-        if (lvl->board[lvl->p_row][lvl->p_col-1] == GOAL) {
+        
+        /* Check to see if the player has made it to the goal. */
+        if (lvl->board[lvl->p_row][lvl->p_col-1] == GOAL)
+        {
+            /* Move the player onto the goal. */
             lvl->board[lvl->p_row][lvl->p_col-1] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
+            lvl->p_col -= 1;
+                        
             return GOAL;
         }
-        /* check for end of board */
-        if (lvl->board[lvl->p_row][lvl->p_col-1] == HOLE) {
+        
+        /* Check to see if the player has fallen into a hole. */
+        if (lvl->board[lvl->p_row][lvl->p_col-1] == HOLE)
+        {
+            /* Move player onto hole. */
             lvl->board[lvl->p_row][lvl->p_col-1] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
             lvl->p_col -= 1;
+            
             return HOLE;
         }
-        /* check for moving block */
-        if (lvl->board[lvl->p_row][lvl->p_col-1] == MOVING_BLOCK) {
-            if (lvl->p_col-2 >= 0 && 
-                lvl->board[lvl->p_row][lvl->p_col-2] == EMPTY
-                && lvl->moving_block_check == FALSE) {
-                
+        
+        /* Check for a moving block. */
+        if (lvl->board[lvl->p_row][lvl->p_col-1] == MOVING_BLOCK)
+        {
+            /* To push a moving block, there must be space on the board,
+             * and that space must be empty. */
+            if (   lvl->p_col-2 >= 0 
+                && lvl->board[lvl->p_row][lvl->p_col-2] == EMPTY
+                && lvl->moving_block_check == FALSE)
+            {
+                /* Push the block back by swapping its position. */
                 int_swap(&lvl->board[lvl->p_row][lvl->p_col-2],
-                &lvl->board[lvl->p_row][lvl->p_col-1]);
+                    &lvl->board[lvl->p_row][lvl->p_col-1]);
+                
                 return MOVING_BLOCK;
             }
-            else {
+            
+            /* If there is no space to push the block, it acts like a wall. */
+            else
+            {
                 return FALSE;
             }
         }
     }
-    /* move right */
-    if (move == RIGHT) {
-        /* check for space */
-        if (lvl->board[lvl->p_row][lvl->p_col+1] == EMPTY) {
+    
+    /* Check to see if the player has moved right. */
+    if (move == RIGHT)
+    {
+        /* Check to see if there is space next to player. */
+        if (lvl->board[lvl->p_row][lvl->p_col+1] == EMPTY)
+        {
+            /* As there is empty space next to the player, move player by
+             * swapping the player and the empty space. */
             int_swap(&lvl->board[lvl->p_row][lvl->p_col+1],
                 &lvl->board[lvl->p_row][lvl->p_col]);
+            
+            /* Adjust players position. */
             lvl->p_col += 1;
+            
             return TRUE;
         }
-        /* check for wall */
-        if (lvl->board[lvl->p_row][lvl->p_col+1] == WALL) {
+        
+        /* Check to see if there is a wall next to the player. */
+        if (lvl->board[lvl->p_row][lvl->p_col+1] == WALL)
+        {
             return FALSE;
         }
-        /* check for goal */
-        if (lvl->board[lvl->p_row][lvl->p_col+1] == GOAL) {
+
+        /* Check to see if the player has made it to the goal. */
+        if (lvl->board[lvl->p_row][lvl->p_col+1] == GOAL)
+        {
+            /* Move the player onto the goal. */
             lvl->board[lvl->p_row][lvl->p_col+1] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
+            lvl->p_col += 1;
+            
             return GOAL;
         }
-        /* check for end of board */
-        if (lvl->board[lvl->p_row][lvl->p_col+1] == HOLE) {
+
+        /* Check to see if the player has fallen into a hole. */
+        if (lvl->board[lvl->p_row][lvl->p_col+1] == HOLE)
+        {
+            /* Move player onto hole. */
             lvl->board[lvl->p_row][lvl->p_col+1] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
             lvl->p_col += 1;
+            
             return HOLE;
         }
-        /* check for moving block */
-        if (lvl->board[lvl->p_row][lvl->p_col+1] == MOVING_BLOCK) {
+        
+        /* Check for a moving block. */
+        if (lvl->board[lvl->p_row][lvl->p_col+1] == MOVING_BLOCK)
+        {
+            /* To push a moving block, there must be space on the board,
+             * and that space must be empty. */
             if (lvl->p_col+2 < lvl->cols && 
                 lvl->board[lvl->p_row][lvl->p_col+2] == EMPTY
-                && lvl->moving_block_check == FALSE) {
-                
+                && lvl->moving_block_check == FALSE)
+            {   
+                /* Push the block back by swapping its position. */
                 int_swap(&lvl->board[lvl->p_row][lvl->p_col+2],
-                &lvl->board[lvl->p_row][lvl->p_col+1]);
+                    &lvl->board[lvl->p_row][lvl->p_col+1]);
+                
                 return MOVING_BLOCK;
             }
-            else {
+            
+            /* If there is no space to push the block, it acts like a wall. */
+            else
+            {
                 return FALSE;
             }
         }
     }
-    /* if no move valid, return FALSE */
+    
+    /* If no move is valid, return FALSE */
     return FALSE;
 }
 
@@ -727,7 +947,9 @@ title_screen(void) {
 "      Adjust screen height, then press any key to play",
     NULL};
     
-    for(i=0;i<3;i++) {
+    /* Create enough new lines so that the termainal buffer is erased. */
+    for(i = 0; i < 10; i++)
+    {
         clear_screen();
     }
     
