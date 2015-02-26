@@ -38,6 +38,8 @@
 #define DOWN                's'
 #define QUIT                'q'
 #define RESTART             'r'
+#define YES                 'y'
+#define NO                  'n'
 
 /* Number of levels. */
 #define MAX_LEVELPACKS      10
@@ -121,7 +123,6 @@ void clear_save(all_packs_t *all_packs);
 void get_levels(all_packs_t *all_packs);
 int get_pack(levelpack_t *levelpack, FILE *fp);
 int set_board(levelpack_t *levelpack);
-void level_to_board(board_t board, board_t level);
 int all_beaten(save_t save);
 
 /* General functions. */
@@ -256,7 +257,9 @@ pack_select(all_packs_t *all_packs)
             /* Move to level select screen. */
             level_select(&all_packs->pack[pack_sel-1]);
         }
-    }    
+    }
+    
+    return;
 }
 
 
@@ -303,6 +306,8 @@ level_select(levelpack_t *levelpack)
                 &levelpack->save, level_sel-1);
         }
     }
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -872,64 +877,81 @@ move(level_t *lvl, char move)
 }
 
 /*---------------------------------------------------------------------------*/
-/* special animation for player falling off the board, then resets the level */
+/* 
+ * Play special animation for player falling off the board, then reset the
+ * level */
 
-#define FALL_TIME 500 /* milliseconds */
+#define FALL_TIME 500 /* Milliseconds. */
 
 void
-hole(level_t *stored_lvl, level_t *lvl) {
-    
+hole(level_t *stored_lvl, level_t *lvl)
+{
+    /* Display level. This shows that the player has moved onto the hole. */    
     disp_board(lvl);
     Sleep(FALL_TIME);
     
-    /* change player icon */
+    /* Change player icon and display the board again. */
     lvl->board[lvl->p_row][lvl->p_col] = PLAYER_FALL_1;
     
     disp_board(lvl);
     Sleep(FALL_TIME);
     
-    /* change player icon */
+    /* Change player icon again, and display the board again. */
     lvl->board[lvl->p_row][lvl->p_col] = PLAYER_FALL_2;
     
     disp_board(lvl);
     Sleep(FALL_TIME);
     
-    /* remove player icon */
+    /* Replace player icon with the hole, as the player has now fallen in.
+     * Display the board again. */
     lvl->board[lvl->p_row][lvl->p_col] = HOLE;
     
     disp_board(lvl);
     Sleep(FALL_TIME);
     
+    /* Reset the level, and display again. */
     *lvl = *stored_lvl;
-    disp_board(lvl);
-    Sleep(TIME_BETWEEN_FRAMES);
-}
-
-/*---------------------------------------------------------------------------*/
-/* special board movements for moving block */
-
-
-void
-moving_block(level_t *lvl, char direction) {
-
+    
     disp_board(lvl);
     Sleep(TIME_BETWEEN_FRAMES);
     
-    /* move player again */
+    return;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Special board movements for moving block.
+ */
+
+void
+moving_block(level_t *lvl, char direction)
+{
+    /* Display the board. This shows that the player has pushed the block back
+     * one spot. */
+    disp_board(lvl);
+    Sleep(TIME_BETWEEN_FRAMES);
+    
+    /* Move player again and display the level. The moving_block_check ensures
+     * that the block now acts as a wall, and that the player doesn't push it
+     * again. */
     move(lvl, direction);
     disp_board(lvl);
     Sleep(TIME_BETWEEN_FRAMES);
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* title screen */
+/*
+ * Title screen.
+ */
 
 void
-title_screen(void) {
-    
+title_screen(void)
+{
     int i;
     
-    /* ASCII art from patorjk.com, font name: AMC Slider */
+    /* ASCII art from patorjk.com, font name: AMC Slider. */
     char *title[] = {    
 "-----------------------------------------------------------------------------",
 " ",
@@ -948,24 +970,29 @@ title_screen(void) {
     NULL};
     
     /* Create enough new lines so that the termainal buffer is erased. */
-    for(i = 0; i < 10; i++)
+    for(i = 0; i < 15; i++)
     {
         clear_screen();
     }
-    
+
+    /* Display the title. */
     print_message_screen(title);
 
-    /* wait for enter */
+    /* Wait for input. */
     getch();
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* shows controls for the game */
+/* 
+ * Shows controls for the game.
+ */
 
 void
-how_to_play(void) {
-    
-    /* pointer to string array for how to play screen */
+how_to_play(void)
+{
+    /* Pointer to string array for how to play screen. */
     char *how_to_play[] = {
 " ",
 " ",
@@ -987,85 +1014,134 @@ how_to_play(void) {
 "       Press any key to return to menu",
     NULL};
     
+    /* Display the how to play screen. */
     print_message_screen(how_to_play);
     
+    /* Wait for input to exit screen. */
     getch();
 }
 
 /*---------------------------------------------------------------------------*/
-/* prints the current board */
+/*
+ * Displays the current board.
+ */
 
 void 
-disp_board(level_t *level) {
-    
-    /* clear screen and initialise variables */
+disp_board(level_t *level)
+{
     int i, j;
+    
+    /* Clear the screen. */
     clear_screen();
     
-    for(i=0; i<level->rows; i++) {
-        
-        /* centre board columns */
-        for(j=0; j<((SCREEN_MAX_C - level->cols)/4); j++) {
+    /* Loop through all screen elements */ 
+    for(i = 0; i < level->rows; i++)
+    {    
+        /* Centre board columns. Pad screen on the left depending on the board
+         * size. */
+        for(j = 0; j < ((SCREEN_MAX_C - level->cols) / 4); j++)
+        {
             printf(" ");
         }
-        /* print board */
-        for(j=0; j< level->cols; j++) {
-            /* empty */
-            if(level->board[i][j] == EMPTY) {
+        
+        /* Print board elements. */
+        for(j = 0; j < level->cols; j++)
+        {
+            /* Empty space. */
+            if(level->board[i][j] == EMPTY)
+            {
                 printf(" ");
-            } /* wall */ 
-            else if(level->board[i][j] == WALL) {
+            } 
+            
+            /* Wall. */ 
+            else if(level->board[i][j] == WALL)
+            {
                 putchar(219);
-            } /* goal */
-            else if(level->board[i][j] == GOAL) {
+            }
+            
+            /* Goal. */
+            else if(level->board[i][j] == GOAL)
+            {
                 printf("X");
-            } /* player */
-            else if(level->board[i][j] == PLAYER) {
+            }
+            
+            /* Player. */
+            else if(level->board[i][j] == PLAYER)
+            {
                 printf("O");
-            } /* moving block */
-            else if(level->board[i][j] == MOVING_BLOCK) {
+            }
+            
+            /* Moving block. */
+            else if(level->board[i][j] == MOVING_BLOCK)
+            {
                 printf("#");
-            } /* end of board */
-            else if(level->board[i][j] == HOLE) {
+            } 
+            
+            /* Hole. */
+            else if(level->board[i][j] == HOLE)
+            {
                 putchar(176);
-            } /* player fall 1 */
-            else if(level->board[i][j] == PLAYER_FALL_1) {
+            }
+            
+            /* Player fall 1. */
+            else if(level->board[i][j] == PLAYER_FALL_1)
+            {
                 printf("o");
-            } /* player fall 2 */
-            else if(level->board[i][j] == PLAYER_FALL_2) {
+            }
+            
+            /* Player fall 2. */
+            else if(level->board[i][j] == PLAYER_FALL_2)
+            {
                 putchar(250);
             }
         }
         
-        if (i == 0) {
+        /* Display move count on first row. */
+        if (i == 0)
+        {
             printf("   %d", level->nmoves); 
         }
-        if (i == level->rows-5 && level->rows > 6) {
-            printf("   MOVE    = wasd");
+        
+        /* Display game instructions on right of board, only if the board is
+         * big enough. */
+        if(level->rows > 6)
+        {
+            if (   i == level->rows - 5)
+            {
+                printf("   MOVE    = wasd");
+            }
+        
+            if (i == level->rows-3)
+            {
+                printf("   RESTART = r");
+            }
+        
+            if (i == level->rows-1)
+            {
+                printf("   QUIT    = q");
+            }
         }
-        if (i == level->rows-3) {
-            printf("   RESTART = r");
-        }
-        if (i == level->rows-1) {
-            printf("   QUIT    = q");
-        }
+        
         printf("\n");
     }
     
-    /* centre board rows */
-    for(i=0; i<((SCREEN_MAX_R - level->rows)/2); i++) {
+    /* Centre board rows. */
+    for(i = 0; i < ((SCREEN_MAX_R - level->rows) / 2); i++)
+    {
             printf("\n");
     }
 }
 
 /*---------------------------------------------------------------------------*/
-/* prints victory screen - treasure chest art taken from 
-ascii.co.uk/art/treasure, Simon was made myself */
+/*
+ * Prints victory screen - treasure chest art taken from 
+ * ascii.co.uk/art/treasure.
+ */
 
 void 
-victory_screen(void) {
-    
-    /* ASCII art from patorjk.com, font name: Slant */
+victory_screen(void)
+{
+    /* ASCII art from patorjk.com, font name: Slant. */
     char *success[] = {
 " ",
 " ",
@@ -1089,226 +1165,338 @@ victory_screen(void) {
 
     print_message_screen(success);
     
-    /* wait for enter */
+    /* Wait for player to enter key. */
     getch();
+    
+    return;
 }
     
 /*---------------------------------------------------------------------------*/
-/* clears the screen by printing new lines */
+/*
+ * Clears the screen by printing new lines.
+ */
 
 void
-clear_screen(void) {
+clear_screen(void)
+{
     int i;
-    for(i=1;i<=SCREEN_MAX_R;i++) {
+    for(i = 0; i < SCREEN_MAX_R; i++)
+    {
         printf("\n");
     }
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* prints an array of strings, and then prints remaining new lines. Used with
-permission from Alistair Moffatt */
+/*
+ * Prints an array of strings, and then prints remaining new lines. Used with
+ * permission from Alistair Moffatt. */
 
 void
-print_message_screen(char *msg[]) {
+print_message_screen(char *msg[])
+{
     int i, new_lines = 0;
     
+    /* Clear the screen */
     clear_screen();
     
-    while(*msg) {
+    /* Array of pointers has NULL as final element. This is used as a sentinel
+     * to determine when to finish printing. */
+    while(*msg)
+    {
         printf("%s\n", *msg);
+        
+        /* Move along in the array. */
         msg++;
+        
+        /* Count the number of lines printed. */
         new_lines++;
     }
     
-    for(i=1; i<=(SCREEN_MAX_R - new_lines); i++) {
+    for(i = 1; i <= (SCREEN_MAX_R - new_lines); i++)
+    {
         printf("\n");
     }
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* prints pack select screen */
+/* 
+ * Prints pack select screen.
+ */
 
 void 
-print_pack_select(all_packs_t *all_packs) {
-    
+print_pack_select(all_packs_t *all_packs)
+{
     int i, j, k, beaten = 0;
-    
+
+    /* Clear the screen. */
     clear_screen();
+    
+    /* TODO: Size of level pack select screen is hard coded, needs to adjust
+     * according to SCREEN_MAX_R. */
     printf("\n\n");
     printf("     LEVEL SELECT:\n\n\n");
     
-    for (i=1; i<=L_PER_COL; i++) {        
+    for (i = 0; i < L_PER_COL; i++)
+    {
+        /* Start each row with a blank space. */
         printf("    ");
         
-        for (j=0; j<PACK_COLS; j++) {
-            
-            
-            if (all_packs->npacks >= i+j*L_PER_COL) {
-                
+        for (j = 0; j < PACK_COLS; j++)
+        {
+            /* Check if the number of packs means that the pack list will flow
+             * over to the jth column. */
+            if (all_packs->npacks > i + j*L_PER_COL)
+            {
+                /* Get level pack beaten status. */
                 beaten = all_beaten(all_packs->
-                    pack[i+j*L_PER_COL-1].save);
+                    pack[i + j*L_PER_COL].save);
                 
-                if (beaten == ACED) {
+                if (beaten == ACED)
+                {
                     printf(" *");
-                } else if (beaten == BEATEN) {
+                } 
+                else if (beaten == BEATEN)
+                {
                     printf(" ");
-                    putchar(248);    /* degrees symbol */
-                } else {
+                    putchar(248);    /* Degrees symbol. */
+                }
+                else
+                {
                     printf("  ");
                 }
                 
-                printf("%2d:  ", i+j*L_PER_COL);
+                /* Print level pack number. Add one due to array notation
+                 * starting at zero. */
+                printf("%2d:  ", i + j*L_PER_COL + 1);
                 
-                printf("%s", all_packs->pack[i+j*L_PER_COL-1].
+                /* Print level pack name, and get length of the name. */
+                printf("%s", all_packs->pack[i + j*L_PER_COL].
                     name);
-                k = strlen(all_packs->pack[i+j*L_PER_COL-1].
+                k = strlen(all_packs->pack[i + j*L_PER_COL].
                     name);
                 
-                while (k < MAX_NAME_LEN) {
+                /* Pad the name with remaining spaces. */
+                while (k < MAX_NAME_LEN)
+                {
                     printf(" ");
                     k++;
                 }                
             }
         }
+        
         printf("\n\n");
     }
+
     printf("\n       q:  Back to Menu\n\n\n");
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* prints level select screen depending on the number of available levels */
+/* 
+ * Prints level select screen depending on the number of available levels.
+ */
 
 void
-print_level_select(char *name, save_t save) {
-
+print_level_select(char *name, save_t save)
+{
     int i, j;    
 
+    /* Clears the screen. */
     clear_screen();
+    
+    /* TODO: Size of level select screen is hard coded, needs to adjust
+     * according to SCREEN_MAX_R. */ 
     printf("\n\n");
+    
+    /* Print name of level pack. */
     printf("     %s:\n\n\n", name);
     
-    for (i=1; i<=L_PER_COL; i++) {
-        for (j=0; j<LEVEL_COLS; j++) {
-            
-            if (save.nlevels >= i+j*L_PER_COL) {
-                if (save.data[i+(j*L_PER_COL)-1] == ACED) {
+    for (i = 0; i < L_PER_COL; i++)
+    {
+        for (j = 0; j < LEVEL_COLS; j++)
+        {
+            /* Check if there are enough levels that one appears in the jth
+             * column of the ith row. */
+            if (save.nlevels > i + j*L_PER_COL)
+            {
+                /* Print level beaten status. */
+                if (save.data[i + (j*L_PER_COL)] == ACED)
+                {
                     printf("     *");
                 } 
-                else if (save.data[i+(j*L_PER_COL)-1] 
-                    == BEATEN) {
+                else if (save.data[i + (j*L_PER_COL)] 
+                    == BEATEN)
+                {
                     printf("     ");
-                    putchar(248);    /* degrees symbol */
+                    putchar(248);    /* Degrees symbol. */
                 }
-                else {
+                else
+                {
                     printf("      ");
                 }
-                printf("%-2d", i+j*L_PER_COL);
+                
+                /* Print the level number, right alligned. Add one due to
+                 * array notation starting at zero. */
+                printf("%-2d", i + j*L_PER_COL + 1);
             }
         }
+        
         printf("\n\n");
     }
+    
     printf("\n       q:  Back to Menu\n\n\n");
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* returns BEATEN if all levels in levelpack have been beaten, returns ACED
-if all levels have been aced */
+/*
+ * Returns BEATEN if all levels in levelpack have been beaten, returns ACED
+ * if all levels have been aced.
+ */
 
-int all_beaten(save_t save) {
-    
+int all_beaten(save_t save)
+{
     int i;
     
-    for (i=0; i<save.nlevels; i++){
-        if (save.data[i] == 0) {
+    /* Check all levels to see if they have been beaten. */
+    for (i = 0; i < save.nlevels; i++)
+    {
+        /* If any level hasn't been beaten, then levelpack hasn't been beaten
+         * yet. Return FALSE */
+        if (save.data[i] == 0)
+        {
             return FALSE;
         }
     }
     
-    for (i=0; i<save.nlevels; i++){
-        if (save.data[i] == BEATEN) {
+    /* All levels have been beaten. Now check all levels again to see if all
+     * of them have been ACED. */
+    for (i = 0; i < save.nlevels; i++)
+    {
+        /* If a level hasn't been ACED, then the levelpack as a whole has only
+         * been beaten. */
+        if (save.data[i] == BEATEN)
+        {
             return BEATEN;
         }
     }
     
+    /* All levels have been checked, and they have all been ACED. */
     return ACED;
 }
 
 /*---------------------------------------------------------------------------*/
-/* reads the save file with crappy encryption*/
+/*
+ * Reads the save file, and loads information.
+ */
 
 void
-read_save(save_t *save) {
-    
+read_save(save_t *save)
+{    
     int i = 0, d =0;
-    FILE *fp;
-    
+    FILE *fp = NULL;
+
+    /* Open save file. */
     fp = fopen(save->sav_file, "r");
     
-    while(fscanf(fp, "%d", &d) != EOF ) {
-        if (i<save->nlevels) {
-            
-            if (d == ACED) {
+    /* Return early if save file didn't open correctly. */
+    if(fp == NULL)
+    {
+        return;
+    }
+    
+    /* Keep loading save information until file is empty. */
+    while(fscanf(fp, "%d", &d) != EOF )
+    {
+        /* Only keep save information if it can be attributed to a level. */ 
+        if (i < save->nlevels)
+        {
+            if (d == ACED)
+            {
                 save->data[i] = ACED;
                 i++;
             }
-            if (d == BEATEN) {
+            else if (d == BEATEN)
+            {
                 save->data[i] = BEATEN;
                 i++;
             }
-            
-            if (d == FALSE) {
+            else if (d == FALSE)
+            {
                 save->data[i] = FALSE;
                 i++;
             }
         }
         
     }
+    
     fclose(fp);
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* replaces the save file with what is currently on the game. Includes crappy
-encryption */
-
-#define MAX_RUBBISH 100
+/* 
+ * Replaces the save file with what is currently on the game.
+ */
 
 void
-write_save(save_t save) {
+write_save(save_t save)
+{
     int i;
-    FILE *fp;
+    FILE *fp = NULL;
         
     fp = fopen(save.sav_file, "w");
     
-    for (i=0; i<save.nlevels; i++) {
-        
-        if (save.data[i] == ACED) {
+    /* Return early if save file didn't open correctly. */
+    if(fp == NULL)
+    {
+        return;
+    }
+    
+    /* Loop through all save levels and print their completion state. */
+    for (i = 0; i < save.nlevels; i++)
+    {
+        if (save.data[i] == ACED)
+        {
             fprintf(fp, "%d", ACED);
         }
-        else if (save.data[i] == BEATEN) {
+        else if (save.data[i] == BEATEN)
+        {
             fprintf(fp, "%d", BEATEN);
         }
-        else {
+        else
+        {
             fprintf(fp, "%d", FALSE);
         }
+        
+        /* New line allows each value to be read individually. */
         fprintf(fp, "\n");
     }
+    
     fclose(fp);
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* prints prompt if player actually wants to erase data, removes save data
-if yes */
-
-#define YES 'y'
-#define NO 'n'
+/* 
+ * Prints prompt if player actually wants to erase data, removes save data
+ * if yes */
 
 void 
-clear_save(all_packs_t *all_packs) {
-    
+clear_save(all_packs_t *all_packs)
+{
     int junk, i;
     char player_choice = '\0';
     
-    /* pointer to string array for menu screen */
+    /* Pointer to string array for menu screen. */
     char *clear_save[] = {
 " ",
 " ",
@@ -1331,65 +1519,66 @@ clear_save(all_packs_t *all_packs) {
 "                      COMPLETION DATA SUCCESSFULLY CLEARED",
     NULL};
     
-    while(TRUE) {
-        
+    while(TRUE)
+    {
+        /* Display the screen. */    
         print_message_screen(clear_save);
         
-        /* get player input */
+        /* Get player input. */
         junk = scanf("%c", &player_choice);
         junk++;
         
-        if (player_choice == YES) {
-            
-            /* clear all packs */
-            for (i=0; i<all_packs->npacks; i++) {
-                
+        if (player_choice == YES)
+        {
+            /* Clear all packs. */
+            for (i = 0; i < all_packs->npacks; i++)
+            {
                 set_zero(all_packs->pack[i].save.data,
                     all_packs->pack[i].nlevels);
+                
                 write_save(all_packs->pack[i].save);
             }
             
+            /* Clearing save is always successful, display success. */
             print_message_screen(clear_success);
-            Sleep(2000);  /* 2 seconds */    
+            
+            Sleep(2000);  /* 2 seconds. */    
+            
             return;
         }
-        else if (player_choice == NO) {
+        else if (player_choice == NO)
+        {
             return;
         }
     }
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* swaps two integers */
+/*
+ * Swaps two integers passed through as pointers.
+ */
 
 void
-int_swap(int *p1, int *p2) {
+int_swap(int *p1, int *p2)
+{
     int temp;
     temp = *p1;
     *p1 = *p2;
     *p2 = temp;
-}
-
-/*---------------------------------------------------------------------------*/
-/* copies level chosen to board[][] */
-
-void 
-level_to_board(board_t board, board_t level) {
-    int i, j;
     
-    /* active board becomes stored level */
-    for(i=0; i<BOARD_MAX_R; i++) {
-        for(j=0; j<BOARD_MAX_C; j++) {
-            board[i][j] = level[i][j];
-        }
-    }
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* prints level load error */
+/*
+ * Prints level load error.
+ */
 
 void
-level_load_error(void) {
+level_load_error(void)
+{
     
     char *error[] = {
 " ",
@@ -1404,6 +1593,8 @@ level_load_error(void) {
     NULL};
 
     print_message_screen(error);
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1415,36 +1606,55 @@ clear (void){
 }
 
 /*---------------------------------------------------------------------------*/
-/* sets interger array to be zero */
+/*
+ * Sets interger array to be zero.
+ */
 
 void 
-set_zero(int array[], int n) {
+set_zero(int array[], int n)
+{
     int i;
-    for (i=0; i<n; i++) {
+
+    for (i = 0; i < n; i++)
+    {
+        /* Set each element up to n to be zero. */
         array[i] = 0;
     }
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
-/* converts a positive two digit number into a string */
+/*
+ * Converts a positive two digit number into a string.
+ */
 
 void
-itoa_2digit(int n, char *s) {
-
+itoa_2digit(int n, char *s)
+{
     int i = 0;
     char tens = '\0', ones = '\0';
     
-    ones = n%10 + '0';    /* add interger value to zero character */
+    /* Add interger value to zero character. */
+    ones = n%10 + '0';    
     n /= 10;
     tens = n%10 + '0';
     
-    if (tens != '0') {
+    /* Only use tens column if it is non zero. Incrememtning position in array
+     * is skipped if tens column is zero, and therefore leading zeros are
+     * ignored. */
+    if (tens != '0')
+    {
         s[i++] = tens;
     }
+    
+    /* Add ones and increment. */
     s[i++] = ones;
     
-    /* close string */
+    /* Close string. */
     s[i] = '\0';
+    
+    return;
 }
 
 /*-----------------------------------END-------------------------------------*/
