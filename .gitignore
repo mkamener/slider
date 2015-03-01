@@ -26,3 +26,6 @@
 *.exe
 *.out
 *.app
+
+# Slider Save Files
+*.sav
