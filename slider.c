@@ -61,7 +61,8 @@
 /* Typedefines. */
 typedef int board_t[BOARD_MAX_R][BOARD_MAX_C];
 
-typedef struct {
+typedef struct 
+{
     board_t board;              /* Level layout. */
     int     rows;               /* Number of rows in level. */
     int     cols;               /* Number of columns in level. */
@@ -73,20 +74,23 @@ typedef struct {
                                  * shouldn't be able to push a block. */
 } level_t;
 
-typedef struct {
+typedef struct 
+{
     int     data[MAX_LEVELS];
     char    sav_file[MAX_FILE_LEN];
     int     nlevels;
 } save_t;
 
-typedef struct {
+typedef struct 
+{
     level_t level[MAX_LEVELS];  /* Array holding levels. */
     int     nlevels;            /* Number of levels. */
     char    name[MAX_NAME_LEN]; /* Name of levelpack. */
     save_t  save;               /* Save state. */
 } levelpack_t;
 
-typedef struct {
+typedef struct 
+{
     levelpack_t pack[MAX_LEVELPACKS];
     int         npacks;
 } all_packs_t;
