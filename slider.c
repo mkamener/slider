@@ -17,7 +17,7 @@
 #define PACK_COLS           2   /* Number of cols in pack select. */
 #define LEVEL_COLS          9   /* Number of cols in level select. */
 
-#define TIME_BETWEEN_FRAMES     150     /* Milliseconds. */
+#define TIME_BETWEEN_FRAMES     100     /* Milliseconds. */
 
 /* Board values. */
 #define BOARD_MAX_R         20  /* Maximum rows on the board */  
@@ -140,6 +140,10 @@ void itoa_2digit(int i, char *s);
 int
 main(int argc, char *argv[])
 {
+    /* Set output buffer to full buffering. The size of the buffer can hold at
+     * least a full screen. */
+    setvbuf(stdout, NULL, _IOFBF, (SCREEN_MAX_R + 1)*(SCREEN_MAX_C + 1));
+    
     /* Set levelpack. */
     all_packs_t all_packs;
     
@@ -151,7 +155,7 @@ main(int argc, char *argv[])
     
     /* Go to menu */
     menu(&all_packs);
-    
+
     return 0;
 }
 
@@ -469,7 +473,7 @@ play(level_t *level, save_t *save, int level_num)
     clear();
     
     /* Get input for player without displaying to the screen. */
-    while (direction = getch())
+    while ( (direction = getch()) )
     {
         check = TRUE;
         
@@ -1030,7 +1034,7 @@ void
 disp_board(level_t *level)
 {
     int i, j;
-    
+
     /* Clear the screen. */
     clear_screen();
     
@@ -1130,6 +1134,11 @@ disp_board(level_t *level)
     {
             printf("\n");
     }
+    
+    /* Flush output to screen. */
+    fflush( stdout );
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1185,6 +1194,9 @@ clear_screen(void)
         printf("\n");
     }
     
+    /* Flush output to screen. */
+    fflush( stdout );
+    
     return;
 }
 
@@ -1218,6 +1230,9 @@ print_message_screen(char *msg[])
     {
         printf("\n");
     }
+    
+    /* Flush output to screen. */
+    fflush( stdout );
     
     return;
 }
@@ -1293,6 +1308,9 @@ print_pack_select(all_packs_t *all_packs)
 
     printf("\n       q:  Back to Menu\n\n\n");
     
+    /* Flush output to screen. */
+    fflush( stdout );
+    
     return;
 }
 
@@ -1350,6 +1368,9 @@ print_level_select(char *name, save_t save)
     }
     
     printf("\n       q:  Back to Menu\n\n\n");
+    
+    /* Flush output to screen. */
+    fflush( stdout );
     
     return;
 }
@@ -1601,8 +1622,11 @@ level_load_error(void)
 /* clears input buffer */
 
 void
-clear (void){ 
+clear (void)
+{ 
     while (getchar() != '\n');
+    
+    return;
 }
 
 /*---------------------------------------------------------------------------*/
