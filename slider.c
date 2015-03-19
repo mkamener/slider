@@ -37,7 +37,7 @@
 #define UP                  'w'
 #define RIGHT               'd'
 #define DOWN                's'
-#define BOMB_INPUT          'b'
+#define BOMB_INPUT          'x'
 #define QUIT                'q'
 #define RESTART             'r'
 #define YES                 'y'
@@ -149,7 +149,7 @@ main(int argc, char *argv[])
 {
     /* Set output buffer to full buffering. The size of the buffer can hold at
      * least a full screen. */
-    setvbuf(stdout, NULL, _IOFBF, (SCREEN_MAX_R + 1)*(SCREEN_MAX_C + 1));
+    setvbuf(stdout, NULL, _IOFBF, (SCREEN_MAX_R + 3)*(SCREEN_MAX_C + 3));
     
     /* Set levelpack. */
     all_packs_t all_packs;
@@ -1073,8 +1073,8 @@ how_to_play(void)
 "           w",
 "       a    s   d   :   MOVE",
 " ",
+"       x:   USE BOMB
 "       q:   QUIT     r:   RESTART LEVEL",
-" ",
 " ",
 " ",
 " ",
@@ -1151,6 +1151,12 @@ disp_board(level_t *level)
                 putchar(176);
             }
             
+            /* Bomb. */
+            else if(level->board[i][j] == BOMB_VAL)
+            {
+                printf("B");
+            }
+            
             /* Player fall 1. */
             else if(level->board[i][j] == PLAYER_FALL_1)
             {
@@ -1164,10 +1170,10 @@ disp_board(level_t *level)
             }
         }
         
-        /* Display move count on first row. */
+        /* Display move count on first row, followed by bomb count. */
         if (i == 0)
         {
-            printf("   %d", level->nmoves); 
+            printf("  %d   B: %d", level->nmoves, level->bombs); 
         }
         
         /* Display game instructions on right of board, only if the board is
@@ -1176,17 +1182,21 @@ disp_board(level_t *level)
         {
             if (   i == level->rows - 5)
             {
-                printf("   MOVE    = wasd");
+                printf("  MOVE    = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
             }
-        
-            if (i == level->rows-3)
+            if (i == level->rows-4)
             {
-                printf("   RESTART = r");
+                printf("  USE BOMB = %c", BOMB_INPUT);
+            }
+            
+            if (i == level->rows-2)
+            {
+                printf("  RESTART = %c", RESTART);
             }
         
             if (i == level->rows-1)
             {
-                printf("   QUIT    = q");
+                printf("  QUIT    = %c", QUIT);
             }
         }
         
