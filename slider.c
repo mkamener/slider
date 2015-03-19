@@ -26,6 +26,7 @@
 #define WALL                1
 #define GOAL                2
 #define PLAYER              3
+#define BOMB_VAL            7
 #define MOVING_BLOCK        8
 #define HOLE                9
 #define PLAYER_FALL_1       91
@@ -36,6 +37,7 @@
 #define UP                  'w'
 #define RIGHT               'd'
 #define DOWN                's'
+#define BOMB_INPUT          'c'
 #define QUIT                'q'
 #define RESTART             'r'
 #define YES                 'y'
@@ -72,6 +74,7 @@ typedef struct
     int     nmoves;             /* Current moves. */
     int     moving_block_check; /* True if the player is stationary, and
                                  * shouldn't be able to push a block. */
+    int     bombs;              /* Number of bombs available. */
 } level_t;
 
 typedef struct 
@@ -401,14 +404,15 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         p_col = 0, 
         moves = 0,
         moving_block = 0;
+        bombs = 0;
             
     /* Get levelpack name. */    
     fscanf(fp, "%s", levelpack->name);
         
     /* Loop while data is available. The information about the board is
      * contained in the first row. */
-    while (fscanf(fp, "%d%d%d%d%d%d", &rows, &cols, &p_row, &p_col,
-        &moves, &moving_block) == 6) 
+    while (fscanf(fp, "%d%d%d%d%d%d%d", &rows, &cols, &p_row, &p_col,
+        &moves, &moving_block, &bombs) == 7) 
     {
         /* Check if the board is too big. */
         if (   rows > BOARD_MAX_R
@@ -433,6 +437,7 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         levelpack->level[level].moves = moves;
         levelpack->level[level].nmoves = 0;
         levelpack->level[level].moving_block_check = moving_block;
+        levelpack->level[level].bombs = bombs;
         
         for (i = 0; i < rows; i++)
         {
