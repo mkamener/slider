@@ -37,7 +37,7 @@
 #define UP                  'w'
 #define RIGHT               'd'
 #define DOWN                's'
-#define BOMB_INPUT          'c'
+#define BOMB_INPUT          'b'
 #define QUIT                'q'
 #define RESTART             'r'
 #define YES                 'y'
@@ -486,11 +486,12 @@ play(level_t *level, save_t *save, int level_num)
     {
         check = TRUE;
         
-        /* Another move has occurred, so increment move counter. */
+        /* Another move has occurred, so increment move counter. Using a bomb
+         * is not counted as a move. */
         if(    direction == LEFT
             || direction == RIGHT
             || direction == UP
-            || direction == DOWN)
+            || direction == DOWN )
         {
             currentlvl.nmoves++;
         }
@@ -510,6 +511,8 @@ play(level_t *level, save_t *save, int level_num)
         /* Move until wall (or goal) is reached. */
         while (TRUE)
         {
+            /* Insert code for using a bomb here. */
+            
             val = move(&currentlvl, direction);
             
             /* Check to see if movement has ended. */
@@ -666,6 +669,19 @@ move(level_t *lvl, char move)
                 return FALSE;
             }
         }
+        
+        /* Check to see if the player picks up a bomb. */
+        if (lvl->board[lvl->p_row-1][lvl->p_col] == BOMB_VAL)
+        {
+            /* Player moves over the bomb */
+            lvl->board[lvl->p_row-1][lvl->p_col] = PLAYER;
+            lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Increase the bomb counter by one. */
+            lvl->bombs++;
+            
+            return BOMB_VAL;
+        }
     }
     
     /* Check to see if the player has moved down. */
@@ -737,6 +753,19 @@ move(level_t *lvl, char move)
             {
                 return FALSE;
             }
+        }
+        
+        /* Check to see if the player picks up a bomb. */
+        if (lvl->board[lvl->p_row+1][lvl->p_col] == BOMB_VAL)
+        {
+            /* Player moves over the bomb */
+            lvl->board[lvl->p_row+1][lvl->p_col] = PLAYER;
+            lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Increase the bomb counter by one. */
+            lvl->bombs++;
+            
+            return BOMB_VAL;
         }
     }
     
@@ -810,6 +839,19 @@ move(level_t *lvl, char move)
                 return FALSE;
             }
         }
+        
+        /* Check to see if the player picks up a bomb. */
+        if (lvl->board[lvl->p_row][lvl->p_col-1] == BOMB_VAL)
+        {
+            /* Player moves over the bomb */
+            lvl->board[lvl->p_row][lvl->p_col-1] = PLAYER;
+            lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Increase the bomb counter by one. */
+            lvl->bombs++;
+            
+            return BOMB_VAL;
+        }        
     }
     
     /* Check to see if the player has moved right. */
@@ -882,6 +924,19 @@ move(level_t *lvl, char move)
             {
                 return FALSE;
             }
+        }
+        
+        /* Check to see if the player picks up a bomb. */
+        if (lvl->board[lvl->p_row][lvl->p_col+1] == BOMB_VAL)
+        {
+            /* Player moves over the bomb */
+            lvl->board[lvl->p_row][lvl->p_col+1] = PLAYER;
+            lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Increase the bomb counter by one. */
+            lvl->bombs++;
+            
+            return BOMB_VAL;
         }
     }
     
