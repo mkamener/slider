@@ -403,7 +403,7 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         p_row = 0, 
         p_col = 0, 
         moves = 0,
-        moving_block = 0;
+        moving_block = 0,
         bombs = 0;
             
     /* Get levelpack name. */    
@@ -676,6 +676,9 @@ move(level_t *lvl, char move)
             /* Player moves over the bomb */
             lvl->board[lvl->p_row-1][lvl->p_col] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+
+            /* Adjust players position. */
+            lvl->p_row -= 1;            
             
             /* Increase the bomb counter by one. */
             lvl->bombs++;
@@ -761,6 +764,9 @@ move(level_t *lvl, char move)
             /* Player moves over the bomb */
             lvl->board[lvl->p_row+1][lvl->p_col] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+
+            /* Adjust players position. */
+            lvl->p_row += 1;            
             
             /* Increase the bomb counter by one. */
             lvl->bombs++;
@@ -847,6 +853,9 @@ move(level_t *lvl, char move)
             lvl->board[lvl->p_row][lvl->p_col-1] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
             
+            /* Adjust players position. */
+            lvl->p_col -= 1;
+            
             /* Increase the bomb counter by one. */
             lvl->bombs++;
             
@@ -932,6 +941,9 @@ move(level_t *lvl, char move)
             /* Player moves over the bomb */
             lvl->board[lvl->p_row][lvl->p_col+1] = PLAYER;
             lvl->board[lvl->p_row][lvl->p_col] = EMPTY;
+            
+            /* Adjust players position. */
+            lvl->p_col += 1;
             
             /* Increase the bomb counter by one. */
             lvl->bombs++;
@@ -1073,7 +1085,7 @@ how_to_play(void)
 "           w",
 "       a    s   d   :   MOVE",
 " ",
-"       x:   USE BOMB
+"       x:   USE BOMB",
 "       q:   QUIT     r:   RESTART LEVEL",
 " ",
 " ",
@@ -1182,7 +1194,7 @@ disp_board(level_t *level)
         {
             if (   i == level->rows - 5)
             {
-                printf("  MOVE    = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
+                printf("  MOVE     = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
             }
             if (i == level->rows-4)
             {
@@ -1191,12 +1203,12 @@ disp_board(level_t *level)
             
             if (i == level->rows-2)
             {
-                printf("  RESTART = %c", RESTART);
+                printf("  RESTART  = %c", RESTART);
             }
         
             if (i == level->rows-1)
             {
-                printf("  QUIT    = %c", QUIT);
+                printf("  QUIT     = %c", QUIT);
             }
         }
         
