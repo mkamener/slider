@@ -29,3 +29,6 @@
 
 # Slider Save Files
 *.sav
+
+# jEdit temporary files
+*~
