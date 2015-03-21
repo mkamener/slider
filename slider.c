@@ -26,6 +26,7 @@
 #define WALL                1
 #define GOAL                2
 #define PLAYER              3
+#define WEAK_WALL           6
 #define BOMB_VAL            7
 #define MOVING_BLOCK        8
 #define HOLE                9
@@ -42,6 +43,18 @@
 #define RESTART             'r'
 #define YES                 'y'
 #define NO                  'n'
+
+/* Screen symbols. */
+#define EMPTY_SYMBOL        ' '
+#define WALL_SYMBOL         219
+#define WEAK_WALL_SYMBOL    178
+#define GOAL_SYMBOL         'X'
+#define PLAYER_SYMBOL       'O'
+#define MOVING_BLOCK_SYMBOL '#'
+#define HOLE_SYMBOL         176
+#define BOMB_SYMBOL         'B'
+#define FALL_1_SYMBOL       'o'
+#define FALL_2_SYMBOL       250
 
 /* Number of levels. */
 #define MAX_LEVELPACKS      10
@@ -74,7 +87,7 @@ typedef struct
     int     nmoves;             /* Current moves. */
     int     moving_block_check; /* True if the player is stationary, and
                                  * shouldn't be able to push a block. */
-    int     bombs;              /* Number of bombs available. */
+    int     bomb;               /* Bombs inventory spot. */
 } level_t;
 
 typedef struct 
@@ -404,7 +417,7 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         p_col = 0, 
         moves = 0,
         moving_block = 0,
-        bombs = 0;
+        bomb = 0;
             
     /* Get levelpack name. */    
     fscanf(fp, "%s", levelpack->name);
@@ -412,7 +425,7 @@ get_pack(levelpack_t *levelpack, FILE *fp)
     /* Loop while data is available. The information about the board is
      * contained in the first row. */
     while (fscanf(fp, "%d%d%d%d%d%d%d", &rows, &cols, &p_row, &p_col,
-        &moves, &moving_block, &bombs) == 7) 
+        &moves, &moving_block, &bomb) == 7) 
     {
         /* Check if the board is too big. */
         if (   rows > BOARD_MAX_R
@@ -437,7 +450,7 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         levelpack->level[level].moves = moves;
         levelpack->level[level].nmoves = 0;
         levelpack->level[level].moving_block_check = moving_block;
-        levelpack->level[level].bombs = bombs;
+        levelpack->level[level].bomb = bomb;
         
         for (i = 0; i < rows; i++)
         {
@@ -616,7 +629,8 @@ move(level_t *lvl, char move)
         }
         
         /* Check to see if there is a wall next to the player. */
-        if (lvl->board[lvl->p_row-1][lvl->p_col] == WALL)
+        if (lvl->board[lvl->p_row-1][lvl->p_col] == WALL ||
+            lvl->board[lvl->p_row-1][lvl->p_col] == WEAK_WALL)
         {
             return FALSE;
         }
@@ -680,8 +694,12 @@ move(level_t *lvl, char move)
             /* Adjust players position. */
             lvl->p_row -= 1;            
             
-            /* Increase the bomb counter by one. */
-            lvl->bombs++;
+            /* Can only hold maximum of one bomb. Check if bomb already in
+             * inventory, and increment otherwise. */
+            if (lvl->bomb == FALSE)
+            {
+                lvl->bomb = TRUE;
+            }
             
             return BOMB_VAL;
         }
@@ -705,7 +723,8 @@ move(level_t *lvl, char move)
         }
 
         /* Check to see if there is a wall next to the player. */
-        if (lvl->board[lvl->p_row+1][lvl->p_col] == WALL)
+        if (lvl->board[lvl->p_row+1][lvl->p_col] == WALL ||
+            lvl->board[lvl->p_row+1][lvl->p_col] == WEAK_WALL)
         {
             return FALSE;
         }
@@ -768,8 +787,12 @@ move(level_t *lvl, char move)
             /* Adjust players position. */
             lvl->p_row += 1;            
             
-            /* Increase the bomb counter by one. */
-            lvl->bombs++;
+            /* Can only hold maximum of one bomb. Check if bomb already in
+             * inventory, and increment otherwise. */
+            if (lvl->bomb == FALSE)
+            {
+                lvl->bomb = TRUE;
+            }
             
             return BOMB_VAL;
         }
@@ -792,7 +815,8 @@ move(level_t *lvl, char move)
         }
         
         /* Check to see if there is a wall next to the player. */
-        if (lvl->board[lvl->p_row][lvl->p_col-1] == WALL)
+        if (lvl->board[lvl->p_row][lvl->p_col-1] == WALL ||
+            lvl->board[lvl->p_row][lvl->p_col-1] == WEAK_WALL)
         {
             return FALSE;
         }
@@ -856,8 +880,12 @@ move(level_t *lvl, char move)
             /* Adjust players position. */
             lvl->p_col -= 1;
             
-            /* Increase the bomb counter by one. */
-            lvl->bombs++;
+            /* Can only hold maximum of one bomb. Check if bomb already in
+             * inventory, and increment otherwise. */
+            if (lvl->bomb == FALSE)
+            {
+                lvl->bomb = TRUE;
+            }
             
             return BOMB_VAL;
         }        
@@ -881,7 +909,8 @@ move(level_t *lvl, char move)
         }
         
         /* Check to see if there is a wall next to the player. */
-        if (lvl->board[lvl->p_row][lvl->p_col+1] == WALL)
+        if (lvl->board[lvl->p_row][lvl->p_col+1] == WALL ||
+            lvl->board[lvl->p_row][lvl->p_col+1] == WEAK_WALL)
         {
             return FALSE;
         }
@@ -945,8 +974,12 @@ move(level_t *lvl, char move)
             /* Adjust players position. */
             lvl->p_col += 1;
             
-            /* Increase the bomb counter by one. */
-            lvl->bombs++;
+            /* Can only hold maximum of one bomb. Check if bomb already in
+             * inventory, and increment otherwise. */
+            if (lvl->bomb == FALSE)
+            {
+                lvl->bomb = TRUE;
+            }
             
             return BOMB_VAL;
         }
@@ -1130,63 +1163,77 @@ disp_board(level_t *level)
             /* Empty space. */
             if(level->board[i][j] == EMPTY)
             {
-                printf(" ");
+                putchar(EMPTY_SYMBOL);
             } 
             
             /* Wall. */ 
             else if(level->board[i][j] == WALL)
             {
-                putchar(219);
+                putchar(WALL_SYMBOL);
             }
             
             /* Goal. */
             else if(level->board[i][j] == GOAL)
             {
-                printf("X");
+                putchar(GOAL_SYMBOL);
             }
             
             /* Player. */
             else if(level->board[i][j] == PLAYER)
             {
-                printf("O");
+                putchar(PLAYER_SYMBOL);
             }
             
             /* Moving block. */
             else if(level->board[i][j] == MOVING_BLOCK)
             {
-                printf("#");
+                putchar(MOVING_BLOCK_SYMBOL);
             } 
             
             /* Hole. */
             else if(level->board[i][j] == HOLE)
             {
-                putchar(176);
+                putchar(HOLE_SYMBOL);
+            }
+            
+            /* Weak wall. */
+            else if(level->board[i][j] == WEAK_WALL)
+            {
+                putchar(WEAK_WALL_SYMBOL);
             }
             
             /* Bomb. */
             else if(level->board[i][j] == BOMB_VAL)
             {
-                printf("B");
+                putchar(BOMB_SYMBOL);
             }
             
             /* Player fall 1. */
             else if(level->board[i][j] == PLAYER_FALL_1)
             {
-                printf("o");
+                putchar(FALL_1_SYMBOL);
             }
             
             /* Player fall 2. */
             else if(level->board[i][j] == PLAYER_FALL_2)
             {
-                putchar(250);
+                putchar(FALL_2_SYMBOL);
             }
         }
         
-        /* Display move count on first row, followed by bomb count. */
+        /* Display move count on first row. */
         if (i == 0)
         {
-            printf("  %d   B: %d", level->nmoves, level->bombs); 
+            printf(" %2d", level->nmoves); 
+            
+            /* Display bomb symbol if bomb is in inventory. */
+            if (level->bomb)
+            {
+                printf("  %c", BOMB_SYMBOL);
+            }
         }
+        
+
         
         /* Display game instructions on right of board, only if the board is
          * big enough. */
