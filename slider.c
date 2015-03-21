@@ -123,6 +123,7 @@ int play(level_t *level, save_t *save, int level_num);
 int move(level_t *lvl, char move);
 void hole(level_t *stored_lvl, level_t *lvl);
 void moving_block(level_t *lvl, char direction);
+void use_bomb(level_t *lvl);
 
 /* Display functions. */
 void title_screen(void);
@@ -520,7 +521,18 @@ play(level_t *level, save_t *save, int level_num)
         {
             currentlvl = *level;
         }
-            
+        
+        /* Check to see if player wants to usee a bomb. */
+        if (direction == BOMB_INPUT)
+        {
+            /* Check if bomb is in the inventory. */
+            if (currentlvl.bomb == TRUE)
+            {
+                /* Player can use bomb. */
+                use_bomb(&currentlvl);
+            }
+        }
+        
         /* Move until wall (or goal) is reached. */
         while (TRUE)
         {
@@ -593,7 +605,7 @@ play(level_t *level, save_t *save, int level_num)
             check = FALSE;
         }
         
-        /* Clear board and display again if no valid move. */
+        /* Display again if no valid move. */
         if (check)
         {
             disp_board(&currentlvl);
@@ -1053,6 +1065,37 @@ moving_block(level_t *lvl, char direction)
     
     return;
 }
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Use bomb. Checks blocks surrounding player, and destorys them if possible.
+ */
+
+void
+use_bomb(level_t *lvl)
+{
+    int i, j;
+    
+    /* Search 3x3 kernel centered around Player. Remove blocks if breakable. */
+    for (i = -1; i <= 1; i++)
+    {
+        for (j = -1; j <= 1; j++)
+        {
+            /* Check if location on board is breakable. */
+            if (lvl->board[lvl->p_row+j][lvl->p_col+i] == WEAK_WALL ||
+                lvl->board[lvl->p_row+j][lvl->p_col+i] == MOVING_BLOCK)
+            {
+                /* Set location in level to empty. */
+                lvl->board[lvl->p_row+j][lvl->p_col+i] = EMPTY;
+            }
+        }
+    }
+    
+    /* Bomb has been used, so remove it from the inventory. */
+    lvl->bomb = FALSE;
+    
+    return;
+} 
 
 /*---------------------------------------------------------------------------*/
 /*
