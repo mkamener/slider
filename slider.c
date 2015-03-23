@@ -30,8 +30,6 @@
 #define BOMB_VAL            7
 #define MOVING_BLOCK        8
 #define HOLE                9
-#define PLAYER_FALL_1       91
-#define PLAYER_FALL_2       92
 
 /* Player inputs. */
 #define LEFT                'a'
@@ -55,6 +53,26 @@
 #define BOMB_SYMBOL         'B'
 #define FALL_1_SYMBOL       'o'
 #define FALL_2_SYMBOL       250
+
+#define BOMB1_00            '\\'
+#define BOMB1_01            '|'
+#define BOMB1_02            '/'
+#define BOMB1_10            '~'
+#define BOMB1_11            0
+#define BOMB1_12            '~'
+#define BOMB1_20            '/'
+#define BOMB1_21            '|'
+#define BOMB1_22            '\\'
+
+#define BOMB2_00            '`'
+#define BOMB2_01            ' '
+#define BOMB2_02            '\''
+#define BOMB2_10            ' '
+#define BOMB2_11            0
+#define BOMB2_12            ' '
+#define BOMB2_20            ','
+#define BOMB2_21            ' '
+#define BOMB2_22            '.'
 
 /* Number of levels. */
 #define MAX_LEVELPACKS      10
@@ -124,6 +142,7 @@ int move(level_t *lvl, char move);
 void hole(level_t *stored_lvl, level_t *lvl);
 void moving_block(level_t *lvl, char direction);
 void use_bomb(level_t *lvl);
+void bomb_animation(level_t lvl);
 
 /* Display functions. */
 void title_screen(void);
@@ -1016,13 +1035,13 @@ hole(level_t *stored_lvl, level_t *lvl)
     Sleep(FALL_TIME);
     
     /* Change player icon and display the board again. */
-    lvl->board[lvl->p_row][lvl->p_col] = PLAYER_FALL_1;
+    lvl->board[lvl->p_row][lvl->p_col] = FALL_1_SYMBOL;
     
     disp_board(lvl);
     Sleep(FALL_TIME);
     
     /* Change player icon again, and display the board again. */
-    lvl->board[lvl->p_row][lvl->p_col] = PLAYER_FALL_2;
+    lvl->board[lvl->p_row][lvl->p_col] = FALL_2_SYMBOL;
     
     disp_board(lvl);
     Sleep(FALL_TIME);
@@ -1091,11 +1110,77 @@ use_bomb(level_t *lvl)
         }
     }
     
+    /* Show animation of bomb */
+    bomb_animation(*lvl);
+    
     /* Bomb has been used, so remove it from the inventory. */
     lvl->bomb = FALSE;
     
     return;
 } 
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Shows bomb animation. Local copy of level so that animation can be drawn
+ * over level without changing board values.
+ */
+ 
+void
+bomb_animation(level_t lvl)
+{
+    /* Animations are 3x3 grids centred around player. */
+    char animation[][3][3]  = {
+        { {BOMB1_00, BOMB1_10, BOMB1_20},
+          {BOMB1_01, BOMB1_11, BOMB1_21},
+          {BOMB1_02, BOMB1_12, BOMB1_22} },
+        
+        { {BOMB2_00, BOMB2_10, BOMB2_20},
+          {BOMB2_01, BOMB2_11, BOMB2_21},
+          {BOMB2_02, BOMB2_12, BOMB2_22} }
+    };
+
+    int n, i, j, n_animations = 2;
+ 
+    /* Store level copy for clearing animation. */
+    level_t lvl_copy = lvl;
+    
+    for (n = 0; n < n_animations; n++)
+    {
+        /* Clear animation. */
+        lvl = lvl_copy;
+        
+        /* Search 3x3 kernel centered around Player.  */
+        for (i = -1; i <= 1; i++)
+        {
+            for (j = -1; j <= 1; j++)
+            {
+                /* Check if explosion should only be displayed if squares are 
+                 * empty or have holes. */
+                if (lvl.board[lvl.p_row+j][lvl.p_col+i] == EMPTY ||
+                    lvl.board[lvl.p_row+j][lvl.p_col+i] == HOLE)
+                {
+                    /* Background shouldn't be replaced if animation is the
+                     * null character. */
+                    if (animation[n][1+i][1+j] != 0)
+                    {
+                        /* Replace location with relevant explosion
+                         * animation. */
+                        lvl.board[lvl.p_row+j][lvl.p_col+i] 
+                            = animation[n][1+i][1+j];
+                    }
+                }
+            }
+        }
+    
+        /* Display the board. */
+        disp_board(&lvl);
+    
+        /* Wait so that animation can be seen. */
+        Sleep(TIME_BETWEEN_FRAMES);
+    }
+    
+    return;
+}
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -1250,18 +1335,13 @@ disp_board(level_t *level)
             {
                 putchar(BOMB_SYMBOL);
             }
-            
-            /* Player fall 1. */
-            else if(level->board[i][j] == PLAYER_FALL_1)
+                      
+            /* All other values are printed using their character value. */
+            else
             {
-                putchar(FALL_1_SYMBOL);
+                putchar(level->board[i][j]);
             }
-            
-            /* Player fall 2. */
-            else if(level->board[i][j] == PLAYER_FALL_2)
-            {
-                putchar(FALL_2_SYMBOL);
-            }
+                        
         }
         
         /* Display move count on first row. */
@@ -1286,7 +1366,8 @@ disp_board(level_t *level)
             {
                 printf("  MOVE     = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
             }
-            if (i == level->rows-4)
+            /* Only display bomb help when bomb is available. */
+            if (i == level->rows-4 && level->bomb)
             {
                 printf("  USE BOMB = %c", BOMB_INPUT);
             }
