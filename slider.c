@@ -439,8 +439,6 @@ get_pack(levelpack_t *levelpack, FILE *fp)
     int i, j, level = 0;
     int rows = 0, 
         cols = 0, 
-        p_row = 0, 
-        p_col = 0, 
         moves = 0,
         moving_block = 0,
         bomb = 0;
@@ -450,8 +448,8 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         
     /* Loop while data is available. The information about the board is
      * contained in the first row. */
-    while (fscanf(fp, "%d%d%d%d%d%d%d", &rows, &cols, &p_row, &p_col,
-        &moves, &moving_block, &bomb) == 7) 
+    while (fscanf(fp, "%d%d%d%d%d", &rows, &cols, &moves, &moving_block, 
+        &bomb) == 5) 
     {
         /* Check if the board is too big. */
         if (   rows > BOARD_MAX_R
@@ -471,12 +469,11 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         /* Copy values into level. */
         levelpack->level[level].rows = rows;
         levelpack->level[level].cols = cols;
-        levelpack->level[level].p_row = p_row;
-        levelpack->level[level].p_col = p_col;
         levelpack->level[level].moves = moves;
         levelpack->level[level].nmoves = 0;
         levelpack->level[level].moving_block_check = moving_block;
         levelpack->level[level].bomb = bomb;
+        levelpack->level[level].message_available = FALSE;        
         
         for (i = 0; i < rows; i++)
         {
@@ -485,6 +482,13 @@ get_pack(levelpack_t *levelpack, FILE *fp)
                 /* Get each individual level feature and copy into board. */
                 fscanf(fp, "%d", 
                     &levelpack->level[level].board[i][j]);
+                
+                /* Get player location. */
+                if (levelpack->level[level].board[i][j] == PLAYER)
+                {
+                    levelpack->level[level].p_row = i;
+                    levelpack->level[level].p_col = j;
+                }
             }
         }
         
