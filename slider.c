@@ -74,6 +74,10 @@
 #define BOMB2_21            ' '
 #define BOMB2_22            '.'
 
+/* Message constants. */
+#define MAX_MSG             30
+#define BOMB_DESTROYED_MSG  "Bomb was destroyed"
+
 /* Number of levels. */
 #define MAX_LEVELPACKS      10
 #define MAX_LEVELS          50
@@ -106,6 +110,8 @@ typedef struct
     int     moving_block_check; /* True if the player is stationary, and
                                  * shouldn't be able to push a block. */
     int     bomb;               /* Bombs inventory spot. */
+    int     message_available;  /* True or false variable. */
+    char    message[MAX_MSG];   /* Message to be printed. */
 } level_t;
 
 typedef struct 
@@ -193,7 +199,7 @@ main(int argc, char *argv[])
     /* Display the title screen. */
     title_screen();
     
-    /* Go to menu */
+    /* Go to menu to start gameplay. */
     menu(&all_packs);
 
     return 0;
@@ -519,6 +525,9 @@ play(level_t *level, save_t *save, int level_num)
     {
         check = TRUE;
         
+        /* Remove messages that were previously displayed. */
+        currentlvl.message_available = FALSE;        
+        
         /* Another move has occurred, so increment move counter. Using a bomb
          * is not counted as a move. */
         if(    direction == LEFT
@@ -731,6 +740,13 @@ move(level_t *lvl, char move)
             {
                 lvl->bomb = TRUE;
             }
+            /* If bomb is already in inventory, extra bomb was destoryed so
+             * display message. */
+            else
+            {
+                lvl->message_available = TRUE;
+                strcpy(lvl->message, BOMB_DESTROYED_MSG);
+            }
             
             return BOMB_VAL;
         }
@@ -823,6 +839,13 @@ move(level_t *lvl, char move)
             if (lvl->bomb == FALSE)
             {
                 lvl->bomb = TRUE;
+            }
+            /* If bomb is already in inventory, extra bomb was destoryed so
+             * display message. */
+            else
+            {
+                lvl->message_available = TRUE;
+                strcpy(lvl->message, BOMB_DESTROYED_MSG);
             }
             
             return BOMB_VAL;
@@ -917,6 +940,13 @@ move(level_t *lvl, char move)
             {
                 lvl->bomb = TRUE;
             }
+            /* If bomb is already in inventory, extra bomb was destoryed so
+             * display message. */
+            else
+            {
+                lvl->message_available = TRUE;
+                strcpy(lvl->message, BOMB_DESTROYED_MSG);
+            }
             
             return BOMB_VAL;
         }        
@@ -1010,6 +1040,13 @@ move(level_t *lvl, char move)
             if (lvl->bomb == FALSE)
             {
                 lvl->bomb = TRUE;
+            }
+            /* If bomb is already in inventory, extra bomb was destoryed so
+             * display message. */
+            else
+            {
+                lvl->message_available = TRUE;
+                strcpy(lvl->message, BOMB_DESTROYED_MSG);
             }
             
             return BOMB_VAL;
@@ -1275,6 +1312,20 @@ disp_board(level_t *level)
     /* Clear the screen. */
     clear_screen();
     
+    /* If there is a message, display it here above the board. */
+    if (level->message_available == TRUE)
+    {
+        /* Centre board columns. Pad screen on the left depending on the board
+         * size. */
+        for(j = 0; j < ((SCREEN_MAX_C - level->cols) / 4); j++)
+        {
+            printf(" ");
+        }
+        
+        /* Print message. */
+        printf("%s\n", level->message);
+    }
+    
     /* Loop through all screen elements */ 
     for(i = 0; i < level->rows; i++)
     {    
@@ -1387,7 +1438,7 @@ disp_board(level_t *level)
     }
     
     /* Centre board rows. */
-    for(i = 0; i < ((SCREEN_MAX_R - level->rows) / 2); i++)
+    for(i = 0; i < ((SCREEN_MAX_R - (level->rows)) / 2); i++)
     {
             printf("\n");
     }
