@@ -88,6 +88,9 @@
 #define SAVE_FILE           ".sav"
 #define LEVEL_FILE          ".lvl"
 
+/* Level editor constants. */
+#define CURSOR_SYMBOL       '+'
+
 /* Other. */
 #define MAX_NAME_LEN        15
 #define BEATEN              1
@@ -135,6 +138,12 @@ typedef struct
     int         npacks;
 } all_packs_t;
 
+typedef struct
+{
+    int     row;                  /* row on board. */
+    int     col;                  /* col on board. */
+} coord_t;
+
 /*
  * Function Prototypes.
  */
@@ -158,6 +167,7 @@ void victory_screen(void);
 /* Display functions. */
 void disp_board_element(int board_value);
 void disp_board(level_t *level);
+void disp_editor(level_t *level, coord_t cursor);
 void clear_screen(void);
 void print_message_screen(char *msg[]);
 void print_level_select(char *name, save_t save);
@@ -180,6 +190,11 @@ void clear(void);
 void level_load_error(void);
 void set_zero(int array[], int n);
 void itoa_2digit(int i, char *s);
+
+/* Level editor functions. */
+void level_editor(void);
+level_t create_empty_lvl(void);
+void move_cursor(coord_t *cursor, char direction);
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -216,6 +231,7 @@ main(int argc, char *argv[])
 #define HOW_TO_PLAY     'h'
 #define LEVEL_SELECT    's'
 #define CLEAR_SAVE      'c'
+#define LEVEL_EDITOR    'e'
 
 void
 menu(all_packs_t *all_packs) 
@@ -233,6 +249,8 @@ menu(all_packs_t *all_packs)
 "       h:  How to play",
 " ",
 "       s:  Level select",
+" ",
+"       e:  Level editor",
 " ",
 "       c:  Clear completion data",
 " ",
@@ -256,6 +274,10 @@ menu(all_packs_t *all_packs)
         else if (player_choice == LEVEL_SELECT)
         {
             pack_select(all_packs);
+        }
+        else if (player_choice == LEVEL_EDITOR)
+        {
+            level_editor();
         }
         else if (player_choice == CLEAR_SAVE)
         {
@@ -1307,7 +1329,9 @@ how_to_play(void)
 }
 
 /*---------------------------------------------------------------------------*/
-/* Checks board value against symbol type, and prints the appropriate one. */
+/*
+ * Checks board value against symbol type, and prints the appropriate one.
+ */
 
 void
 disp_board_element(int board_value)
@@ -2002,6 +2026,275 @@ itoa_2digit(int n, char *s)
     
     /* Close string. */
     s[i] = '\0';
+    
+    return;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Level editor interface. User can navigate around level, place board
+ * elements, test level, and then save the level.
+ */
+ 
+void
+level_editor(void)
+{
+    char input;
+    int number_input;
+    
+    coord_t cursor = {0, 0}, goal = {0, 0};
+    
+    /* Create empty level, with maximum size. */
+    level_t lvl = create_empty_lvl();
+    
+    /* Display screen. */
+    disp_editor(&lvl, cursor);
+        
+    /* Clear the input buffer. */
+    clear();
+    
+    /* Get input from user. */
+    while( (input = getch()) )
+    {
+        /* Get the int value from input (if applicable). */
+        number_input = input - '0';
+        
+        /* Check for quit. */
+        if (input == QUIT)
+        {
+            /* Check if user really wants to quit, as progress will be lost. */
+            
+            /* Exit the editor. */
+            return;
+        }
+        
+        /* Move the cursor if a direction is input  */
+        move_cursor(&cursor, input);
+              
+        /* Place a board elements. */
+        if (number_input == PLAYER)
+        {
+            /* Remove old player icon if aplicable. */
+            if (lvl.board[lvl.p_row][lvl.p_col] == PLAYER)
+            {
+                lvl.board[lvl.p_row][lvl.p_col] = EMPTY;
+            }
+            
+            /* Set new player icon. */
+            lvl.p_row = cursor.row;
+            lvl.p_col = cursor.col;
+            lvl.board[lvl.p_row][lvl.p_col] = PLAYER;            
+        }
+        
+        if (number_input == GOAL)
+        {
+            /* Remove old goal icon if aplicable. */
+            if (lvl.board[goal.row][goal.col] == GOAL)
+            {
+                lvl.board[goal.row][goal.col] = EMPTY;
+            }
+            
+            /* Set new goal icon. */
+            goal.row = cursor.row;
+            goal.col = cursor.col;
+            lvl.board[goal.row][goal.col] = GOAL;  
+        }
+        
+        /* All other inputs. */
+        if (number_input == EMPTY ||
+            number_input == WALL ||
+            number_input == WEAK_WALL ||
+            number_input == BOMB_VAL ||
+            number_input == MOVING_BLOCK ||
+            number_input == HOLE)
+        {
+            lvl.board[cursor.row][cursor.col] = number_input;
+        }
+            
+        /* Test the level. */
+        
+        /* Save the level. */
+        
+        disp_editor(&lvl, cursor);
+        Sleep(TIME_BETWEEN_FRAMES);
+    }
+    
+    return;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Creates an empty level ready to be edited.
+ */
+
+level_t
+create_empty_lvl(void)
+{
+    int i, j;
+    
+    level_t lvl;
+    
+    /* Loop through all the board elements */
+    for (i = 0; i < BOARD_MAX_R; i++)
+    {
+        for (j = 0; j < BOARD_MAX_C; j++)
+        {
+            /* Boarder values set as holes for default. */
+            if (i == 0 ||
+                i == BOARD_MAX_R - 1 ||
+                j == 0 ||
+                j == BOARD_MAX_C - 1)
+            {
+                lvl.board[i][j] = HOLE;
+            }
+            /* All inner board values set to empty by default. */
+            else
+            {
+                lvl.board[i][j] = EMPTY;
+            }
+        }
+    }
+    
+    /* Set board values. */
+    lvl.rows = BOARD_MAX_R;
+    lvl.cols = BOARD_MAX_C;
+    lvl.p_row = 0;
+    lvl.p_col = 0;
+    lvl.moves = 0;
+    lvl.nmoves = 0;
+    lvl.moving_block_check = FALSE;
+    lvl.bomb = FALSE;
+    lvl.message_available = FALSE;
+    
+    return lvl;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Moves the cursor in the level editor.
+ */
+ 
+void
+move_cursor(coord_t *cursor, char direction)
+{
+    /* Need space above to move cursor UP. */
+    if (direction == UP &&
+        cursor->row > 0)
+    {
+        /* Subtract a row. */
+        cursor->row--;
+        return;
+    }
+    
+    /* Need space below to move cursor DOWN. */
+    if (direction == DOWN &&
+        cursor->row < BOARD_MAX_R - 1)
+    {
+        /* Add a row. */
+        cursor->row++;
+        return;
+    }
+    
+    /* Need space left to move cursor LEFT. */
+    if (direction == LEFT &&
+        cursor->col > 0)
+    {
+        /* Subtract a column. */
+        cursor->col--;
+        return;
+    }
+    
+    /* Need space right to move cursor RIGHT. */
+    if (direction == RIGHT &&
+        cursor->col < BOARD_MAX_C - 1)
+    {
+        /* Add a column. */
+        cursor->col++;
+        return;
+    }
+        
+    return;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Displays the level editor interface.
+ */
+ 
+void
+disp_editor(level_t *level, coord_t cursor)
+{
+    int i, j;
+
+    /* Clear the screen. */
+    clear_screen();
+    
+    /* If there is a message, display it here above the board. */
+    if (level->message_available == TRUE)
+    {
+        /* Centre board columns. Pad screen on the left depending on the board
+         * size. */
+        for(j = 0; j < ((SCREEN_MAX_C - level->cols) / 4); j++)
+        {
+            printf(" ");
+        }
+        
+        /* Print message. */
+        printf("%s\n", level->message);
+    }
+    
+    /* Loop through all screen elements */ 
+    for(i = 0; i < level->rows; i++)
+    {    
+        /* Centre board columns. Pad screen on the left depending on the board
+         * size. */
+        for(j = 0; j < ((SCREEN_MAX_C - level->cols) / 4); j++)
+        {
+            printf(" ");
+        }
+        
+        /* Print board elements. */
+        for(j = 0; j < level->cols; j++)
+        {
+            /* Display cursor over the board. */
+            if( i == cursor.row && j == cursor.col )
+            {
+                putchar(CURSOR_SYMBOL);
+            }
+            else
+            {
+                disp_board_element( level->board[i][j] );
+            }
+        }
+        
+        /* Display game instructions on right of board, only if the board is
+         * big enough. */
+        if(level->rows > 6)
+        {
+            if (   i == level->rows - 5)
+            {
+                printf("  MOVE     = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
+            }
+        
+            if (i == level->rows-1)
+            {
+                printf("  QUIT     = %c", QUIT);
+            }
+        }
+        
+        printf("\n");
+    }
+    
+    /* Centre board rows. */
+    for(i = 0; i < ((SCREEN_MAX_R - (level->rows)) / 2); i++)
+    {
+            printf("\n");
+    }
+    
+    /* Flush output to screen. */
+    fflush( stdout );
     
     return;
 }
