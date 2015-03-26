@@ -150,11 +150,14 @@ void moving_block(level_t *lvl, char direction);
 void use_bomb(level_t *lvl);
 void bomb_animation(level_t lvl);
 
-/* Display functions. */
+/* Special screens. */
 void title_screen(void);
 void how_to_play(void);
-void disp_board(level_t *level);
 void victory_screen(void);
+
+/* Display functions. */
+void disp_board_element(int board_value);
+void disp_board(level_t *level);
 void clear_screen(void);
 void print_message_screen(char *msg[]);
 void print_level_select(char *name, save_t save);
@@ -1304,6 +1307,69 @@ how_to_play(void)
 }
 
 /*---------------------------------------------------------------------------*/
+/* Checks board value against symbol type, and prints the appropriate one. */
+
+void
+disp_board_element(int board_value)
+{
+    /* Empty space. */
+    if(board_value == EMPTY)
+    {
+        putchar(EMPTY_SYMBOL);
+    } 
+            
+    /* Wall. */ 
+    else if(board_value == WALL)
+    {
+        putchar(WALL_SYMBOL);
+    }
+            
+    /* Goal. */
+    else if(board_value == GOAL)
+    {
+        putchar(GOAL_SYMBOL);
+    }
+            
+    /* Player. */
+    else if(board_value == PLAYER)
+    {
+        putchar(PLAYER_SYMBOL);
+    }
+            
+    /* Moving block. */
+    else if(board_value == MOVING_BLOCK)
+    {
+        putchar(MOVING_BLOCK_SYMBOL);
+    } 
+            
+    /* Hole. */
+    else if(board_value == HOLE)
+    {
+        putchar(HOLE_SYMBOL);
+    }
+            
+    /* Weak wall. */
+    else if(board_value == WEAK_WALL)
+    {
+        putchar(WEAK_WALL_SYMBOL);
+    }
+            
+    /* Bomb. */
+    else if(board_value == BOMB_VAL)
+    {
+        putchar(BOMB_SYMBOL);
+    }
+                      
+    /* All other values are printed using their character value. */
+    else
+    {
+        putchar(board_value);
+    }
+
+    return;
+}
+
+/*---------------------------------------------------------------------------*/
 /*
  * Displays the current board.
  */
@@ -1343,60 +1409,7 @@ disp_board(level_t *level)
         /* Print board elements. */
         for(j = 0; j < level->cols; j++)
         {
-            /* Empty space. */
-            if(level->board[i][j] == EMPTY)
-            {
-                putchar(EMPTY_SYMBOL);
-            } 
-            
-            /* Wall. */ 
-            else if(level->board[i][j] == WALL)
-            {
-                putchar(WALL_SYMBOL);
-            }
-            
-            /* Goal. */
-            else if(level->board[i][j] == GOAL)
-            {
-                putchar(GOAL_SYMBOL);
-            }
-            
-            /* Player. */
-            else if(level->board[i][j] == PLAYER)
-            {
-                putchar(PLAYER_SYMBOL);
-            }
-            
-            /* Moving block. */
-            else if(level->board[i][j] == MOVING_BLOCK)
-            {
-                putchar(MOVING_BLOCK_SYMBOL);
-            } 
-            
-            /* Hole. */
-            else if(level->board[i][j] == HOLE)
-            {
-                putchar(HOLE_SYMBOL);
-            }
-            
-            /* Weak wall. */
-            else if(level->board[i][j] == WEAK_WALL)
-            {
-                putchar(WEAK_WALL_SYMBOL);
-            }
-            
-            /* Bomb. */
-            else if(level->board[i][j] == BOMB_VAL)
-            {
-                putchar(BOMB_SYMBOL);
-            }
-                      
-            /* All other values are printed using their character value. */
-            else
-            {
-                putchar(level->board[i][j]);
-            }
-                        
+            disp_board_element( level->board[i][j] );                        
         }
         
         /* Display move count on first row. */
