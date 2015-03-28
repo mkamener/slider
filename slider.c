@@ -39,6 +39,7 @@
 #define BOMB_INPUT          'x'
 #define QUIT                'q'
 #define RESTART             'r'
+#define PLAY                'p'
 #define YES                 'y'
 #define NO                  'n'
 
@@ -152,7 +153,7 @@ typedef struct
 void menu(all_packs_t *all_packs);
 void pack_select(all_packs_t *all_packs);
 void level_select(levelpack_t *levelpack);
-int play(level_t *level, save_t *save, int level_num);
+int play(level_t *level, save_t *save, int level_num, int edit_mode);
 int move(level_t *lvl, char move);
 void hole(level_t *stored_lvl, level_t *lvl);
 void moving_block(level_t *lvl, char direction);
@@ -229,7 +230,6 @@ main(int argc, char *argv[])
  */
 
 #define HOW_TO_PLAY     'h'
-#define LEVEL_SELECT    's'
 #define CLEAR_SAVE      'c'
 #define LEVEL_EDITOR    'e'
 
@@ -246,9 +246,11 @@ menu(all_packs_t *all_packs)
 "     MENU:",
 " ",
 " ",
-"       h:  How to play",
+"       p:  Play game",
 " ",
-"       s:  Level select",
+" ",
+" ",
+"       h:  How to play",
 " ",
 "       e:  Level editor",
 " ",
@@ -271,7 +273,7 @@ menu(all_packs_t *all_packs)
         {
             how_to_play();
         }
-        else if (player_choice == LEVEL_SELECT)
+        else if (player_choice == PLAY)
         {
             pack_select(all_packs);
         }
@@ -378,7 +380,7 @@ level_select(levelpack_t *levelpack)
             /* Use level_sel-1 as levels are listed to player starting from
              * 1, rather than starting from 0 as they are in the arrays. */
             play(&levelpack->level[level_sel-1], 
-                &levelpack->save, level_sel-1);
+                &levelpack->save, level_sel-1, FALSE);
         }
     }
     
@@ -535,7 +537,7 @@ get_pack(levelpack_t *levelpack, FILE *fp)
  */
 
 int
-play(level_t *level, save_t *save, int level_num)
+play(level_t *level, save_t *save, int level_num, int edit_mode)
 {
     char direction = '\0';
     int val, check;
@@ -546,8 +548,11 @@ play(level_t *level, save_t *save, int level_num)
         
     disp_board(&currentlvl);
     
-    /* Clear the input buffer. */
-    clear();
+    /* Clear the input buffer. Not necessary if in edit mode. */
+    if (!edit_mode)
+    {
+        clear();
+    }
     
     /* Get input for player without displaying to the screen. */
     while ( (direction = getch()) )
@@ -616,23 +621,26 @@ play(level_t *level, save_t *save, int level_num)
                 Sleep(1000);
                 
                 /* Edit save file. */
-                if (currentlvl.nmoves <= level->moves)
+                if (!edit_mode)
                 {
-                    save->data[level_num] = ACED;
+                    if (currentlvl.nmoves <= level->moves)
+                    {
+                        save->data[level_num] = ACED;
+                    }
+                    else if (save->data[level_num] != ACED)
+                    {
+                        save->data[level_num] = BEATEN;
+                    }
+                    write_save(*save);
                 }
-                else if (save->data[level_num] != ACED)
-                {
-                    save->data[level_num] = BEATEN;
-                }
-                write_save(*save);
-                
+                    
                 /* Display victory screen. */
                 victory_screen();
                 
                 return GOAL;
             }
             
-            /* Check to see if player has falling in a hole. */
+            /* Check to see if player has fallen in a hole. */
             if (val == HOLE)
             {   
                 hole(level, &currentlvl);
@@ -2041,6 +2049,7 @@ level_editor(void)
 {
     char input;
     int number_input;
+    save_t dummy_save;
     
     coord_t cursor = {0, 0}, goal = {0, 0};
     
@@ -2112,6 +2121,10 @@ level_editor(void)
         }
             
         /* Test the level. */
+        if (input == PLAY)
+        {
+            play(&lvl, &dummy_save, 0, TRUE);
+        }
         
         /* Save the level. */
         
@@ -2217,8 +2230,6 @@ move_cursor(coord_t *cursor, char direction)
 }
 
 /*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
 /*
  * Displays the level editor interface.
  */
@@ -2278,6 +2289,11 @@ disp_editor(level_t *level, coord_t cursor)
                 printf("  MOVE     = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
             }
         
+            if (i == level->rows-3)
+            {
+                printf("  PLAY     = %c", PLAY);
+            }
+            
             if (i == level->rows-1)
             {
                 printf("  QUIT     = %c", QUIT);
