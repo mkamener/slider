@@ -2285,11 +2285,35 @@ disp_editor(level_t *level, coord_t cursor)
             }
         }
         
-        /* Display game instructions on right of board, only if the board is
+        /* Display editor instructions on right of board, only if the board is
          * big enough. */
-        if(level->rows > 6)
+        if(level->rows >= 12)
         {
-            if (   i == level->rows - 5)
+            if (i == 1)
+            {
+                printf("  %c = %d", EMPTY_SYMBOL, EMPTY);
+                printf("    %c = %d", WALL_SYMBOL, WALL);
+            }
+            
+            if (i == 3)
+            {
+                printf("  %c = %d", GOAL_SYMBOL, GOAL);
+                printf("    %c = %d", PLAYER_SYMBOL, PLAYER);
+            }
+            
+            if (i == 5)
+            {
+                printf("  %c = %d", WEAK_WALL_SYMBOL, WEAK_WALL);
+                printf("    %c = %d", BOMB_SYMBOL, BOMB_VAL);
+            }
+            
+            if (i == 7)
+            {
+                printf("  %c = %d", MOVING_BLOCK_SYMBOL, MOVING_BLOCK);
+                printf("    %c = %d", HOLE_SYMBOL, HOLE);
+            }
+            
+            if (i == level->rows - 5)
             {
                 printf("  MOVE     = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
             }
