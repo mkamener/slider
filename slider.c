@@ -91,6 +91,8 @@
 
 /* Level editor constants. */
 #define CURSOR_SYMBOL       '+'
+#define PADDING_COLS        3       /* Whitespace between border and first */
+#define PADDING_ROWS        2       /* element. */
 
 /* Other. */
 #define MAX_NAME_LEN        15
@@ -196,6 +198,7 @@ void itoa_2digit(int i, char *s);
 void level_editor(void);
 level_t create_empty_lvl(void);
 void move_cursor(coord_t *cursor, char direction);
+level_t crop_lvl(level_t *src_lvl);
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -1456,8 +1459,6 @@ disp_board(level_t *level)
             }
         }
         
-
-        
         /* Display game instructions on right of board, only if the board is
          * big enough. */
         if(level->rows > 6)
@@ -2051,10 +2052,12 @@ level_editor(void)
     int number_input;
     save_t dummy_save;
     
-    coord_t cursor = {0, 0}, goal = {0, 0};
-    
     /* Create empty level, with maximum size. */
     level_t lvl = create_empty_lvl();
+    level_t cropped_lvl;
+    
+        /* Set cursor inside boundary. */
+    coord_t cursor = {lvl.rows / 2, lvl.cols / 2}, goal = {0, 0};
     
     /* Display screen. */
     disp_editor(&lvl, cursor);
@@ -2123,7 +2126,8 @@ level_editor(void)
         /* Test the level. */
         if (input == PLAY)
         {
-            play(&lvl, &dummy_save, 0, TRUE);
+            cropped_lvl = crop_lvl(&lvl);
+            play(&cropped_lvl, &dummy_save, 0, TRUE);
         }
         
         /* Save the level. */
@@ -2184,7 +2188,8 @@ create_empty_lvl(void)
 
 /*---------------------------------------------------------------------------*/
 /*
- * Moves the cursor in the level editor.
+ * Moves the cursor in the level editor. The cursor cannot move onto the
+ * boundary of the level.
  */
  
 void
@@ -2192,7 +2197,7 @@ move_cursor(coord_t *cursor, char direction)
 {
     /* Need space above to move cursor UP. */
     if (direction == UP &&
-        cursor->row > 0)
+        cursor->row > 1)
     {
         /* Subtract a row. */
         cursor->row--;
@@ -2201,7 +2206,7 @@ move_cursor(coord_t *cursor, char direction)
     
     /* Need space below to move cursor DOWN. */
     if (direction == DOWN &&
-        cursor->row < BOARD_MAX_R - 1)
+        cursor->row < BOARD_MAX_R - 2)
     {
         /* Add a row. */
         cursor->row++;
@@ -2210,7 +2215,7 @@ move_cursor(coord_t *cursor, char direction)
     
     /* Need space left to move cursor LEFT. */
     if (direction == LEFT &&
-        cursor->col > 0)
+        cursor->col > 1)
     {
         /* Subtract a column. */
         cursor->col--;
@@ -2219,7 +2224,7 @@ move_cursor(coord_t *cursor, char direction)
     
     /* Need space right to move cursor RIGHT. */
     if (direction == RIGHT &&
-        cursor->col < BOARD_MAX_C - 1)
+        cursor->col < BOARD_MAX_C - 2)
     {
         /* Add a column. */
         cursor->col++;
@@ -2313,6 +2318,129 @@ disp_editor(level_t *level, coord_t cursor)
     fflush( stdout );
     
     return;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Crop level. This crops the maximum sized level from the level editor, to the
+ * minimum size needed to play the level, with padding around the sides if
+ * possible.
+ */
+level_t
+crop_lvl(level_t *src_lvl)
+{
+    int i, j;
+    int min_row = src_lvl->rows - 2, min_col = src_lvl->cols - 2;
+    int max_row = 1, max_col = 1;
+    int element_rows, element_cols;
+    int padding_rows = PADDING_ROWS, padding_cols = PADDING_COLS;
+    level_t dst_lvl;
+    
+    /* Find the minimum and maximum row and column where a block exists.
+     * Ignore the boundary of the level, so add and subtract 1 to the initial
+     * and final values. */
+    for (i = 1; i < src_lvl->rows - 1; i++)
+    {
+        for (j = 1; j < src_lvl->cols - 1; j++)
+        {
+            /* Check if there is a board element. */
+            if (src_lvl->board[i][j] != EMPTY)
+            {
+                /* Check if a new minimum row/col has been found. */
+                if (i < min_row)
+                {
+                    min_row = i;
+                }
+                if (j < min_col)
+                {
+                    min_col = j;
+                }
+                /* Check if a new maximum row/col has been found. */
+                if (i > max_row)
+                {
+                    max_row = i;
+                }
+                if (j > max_col)
+                {
+                    max_col = j;
+                }
+            }
+        }
+    }
+    
+    /* If either the rows or the cols are negative, it means there was an empty
+     * board. Just return the input level. */
+    element_rows = (max_row + 1) - min_row;
+    element_cols = (max_col + 1) - min_col;
+    
+    if ( element_rows < 0 || element_cols < 0)
+    {
+        return *src_lvl;
+    }
+    
+    /* Determine padding size. */
+    
+    /* Padding is whitespace between border and first element, but BOARD_MAX_R
+     * includes the border, so subtract 2. */
+    if ( (element_rows + 2*PADDING_ROWS) > BOARD_MAX_R - 2 )
+    {
+        /* Calculate the available white space, and divide by 2. Use integer
+         * division to round down. */
+        padding_rows = ((BOARD_MAX_R - 2) - element_rows) / 2;
+    }
+    if ( (element_cols + 2*PADDING_COLS) > BOARD_MAX_C - 2 )
+    {
+        /* Calculate the available white space, and divide by 2. Use integer
+         * division to round down. */
+        padding_cols = ((BOARD_MAX_C - 2) - element_cols) / 2;
+    }
+        
+    /* Create a new board with a border, using the dimensions found. */
+    dst_lvl.rows = element_rows + 2*padding_rows + 2;
+    dst_lvl.cols = element_cols + 2*padding_cols + 2;   
+    
+    for (i = 0; i < dst_lvl.rows; i++)
+    {
+        for (j = 0; j < dst_lvl.cols; j++)
+        {
+            /* Boarder values set as holes for default. */
+            if (i == 0 ||
+                i == dst_lvl.rows - 1 ||
+                j == 0 ||
+                j == dst_lvl.cols - 1)
+            {
+                dst_lvl.board[i][j] = HOLE;
+            }
+            /* All inner board values set to empty by default. */
+            else
+            {
+                dst_lvl.board[i][j] = EMPTY;
+            }
+        }
+    }
+        
+    /* Copy board values into the centre of the new board. */
+    for (i = 0; i < element_rows; i++)
+    {
+        for (j = 0; j < element_cols; j++)
+        {
+            /* Copy in board values from input board. */
+            dst_lvl.board[i + padding_rows + 1][j + padding_cols + 1] =
+                src_lvl->board[i + min_row][j + min_col];
+        }
+    }
+    
+    /* Get the additional inital level values for the board. */
+    dst_lvl.p_row = src_lvl->p_row - min_row + padding_rows + 1;
+    dst_lvl.p_col = src_lvl->p_col - min_col + padding_cols + 1;
+    
+    dst_lvl.moves = src_lvl->moves;
+    dst_lvl.nmoves = src_lvl->nmoves;
+    dst_lvl.moving_block_check = src_lvl->moving_block_check;
+    dst_lvl.bomb = src_lvl->bomb;
+    dst_lvl.message_available = src_lvl->message_available;
+    
+    return dst_lvl;
 }
 
 /*-----------------------------------END-------------------------------------*/
