@@ -40,6 +40,7 @@
 #define QUIT                'q'
 #define RESTART             'r'
 #define PLAY                'p'
+#define SAVE_LEVEL          'v'
 #define YES                 'y'
 #define NO                  'n'
 
@@ -90,6 +91,8 @@
 #define LEVEL_FILE          ".lvl"
 
 /* Level editor constants. */
+#define CUSTOM_LEVEL_FILE   "custom"
+#define CUSTOM_LEVEL_NAME   "CUSTOM"
 #define CURSOR_SYMBOL       '+'
 #define PADDING_COLS        3       /* Whitespace between border and first */
 #define PADDING_ROWS        2       /* element. */
@@ -186,6 +189,7 @@ void get_levels(all_packs_t *all_packs);
 int get_pack(levelpack_t *levelpack, FILE *fp);
 int set_board(levelpack_t *levelpack);
 int all_beaten(save_t save);
+int moving_block_check(level_t *lvl);
 
 /* General functions. */
 void int_swap(int *p1, int *p2);
@@ -199,6 +203,8 @@ void level_editor(void);
 level_t create_empty_lvl(void);
 void move_cursor(coord_t *cursor, char direction);
 level_t crop_lvl(level_t *src_lvl);
+int is_player_and_goal_valid(level_t *lvl, coord_t goal);
+void write_level(level_t lvl);
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -309,6 +315,9 @@ pack_select(all_packs_t *all_packs)
     char player_quit;
     int junk, pack_sel;
     
+    /* Refresh level list. */
+    get_levels(all_packs);
+    
     while(TRUE)
     {    
         /* Display the packs available. */
@@ -415,7 +424,15 @@ get_levels(all_packs_t *all_packs)
         
         strcat(lvl_name, LEVEL_FILE);
         strcat(sav_name, SAVE_FILE);
-                
+        
+        if (i == (MAX_LEVELPACKS - 1))
+        {
+            strcpy(lvl_name, CUSTOM_LEVEL_FILE);
+            strcpy(sav_name, CUSTOM_LEVEL_FILE);
+            strcat(lvl_name, LEVEL_FILE);
+            strcat(sav_name, SAVE_FILE);
+        }
+        
         /* Open file. */
         if ((fp = fopen(lvl_name, "r")) != NULL)
         {
@@ -469,17 +486,14 @@ get_pack(levelpack_t *levelpack, FILE *fp)
     int i, j, level = 0;
     int rows = 0, 
         cols = 0, 
-        moves = 0,
-        moving_block = 0,
-        bomb = 0;
+        moves = 0;
             
     /* Get levelpack name. */    
     fscanf(fp, "%s", levelpack->name);
         
     /* Loop while data is available. The information about the board is
      * contained in the first row. */
-    while (fscanf(fp, "%d%d%d%d%d", &rows, &cols, &moves, &moving_block, 
-        &bomb) == 5) 
+    while (fscanf(fp, "%d%d%d", &rows, &cols, &moves) == 3) 
     {
         /* Check if the board is too big. */
         if (   rows > BOARD_MAX_R
@@ -501,8 +515,9 @@ get_pack(levelpack_t *levelpack, FILE *fp)
         levelpack->level[level].cols = cols;
         levelpack->level[level].moves = moves;
         levelpack->level[level].nmoves = 0;
-        levelpack->level[level].moving_block_check = moving_block;
-        levelpack->level[level].bomb = bomb;
+        levelpack->level[level].moving_block_check = 
+            moving_block_check(&levelpack->level[level]);
+        levelpack->level[level].bomb = 0;
         levelpack->level[level].message_available = FALSE;        
         
         for (i = 0; i < rows; i++)
@@ -640,7 +655,7 @@ play(level_t *level, save_t *save, int level_num, int edit_mode)
                 /* Display victory screen. */
                 victory_screen();
                 
-                return GOAL;
+                return currentlvl.nmoves;
             }
             
             /* Check to see if player has fallen in a hole. */
@@ -1160,6 +1175,31 @@ moving_block(level_t *lvl, char direction)
     Sleep(TIME_BETWEEN_FRAMES);
     
     return;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Checks if the player is next to a moving block.
+ */
+
+int
+moving_block_check(level_t *lvl)
+{
+    int i, j;
+    
+    for (i = -1; i <= 1; i++)
+    {
+        for (j = -1; j <= 1; j++)
+        {
+            if (lvl->board[lvl->p_row + i][lvl->p_col + j] == MOVING_BLOCK)
+            {
+                /* Moving block found. */
+                return TRUE;
+            }
+        }
+    }
+    
+    return FALSE;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1980,7 +2020,7 @@ level_load_error(void)
 /* clears input buffer */
 
 void
-clear (void)
+clear(void)
 { 
     while (getchar() != '\n');
     
@@ -2126,11 +2166,41 @@ level_editor(void)
         /* Test the level. */
         if (input == PLAY)
         {
-            cropped_lvl = crop_lvl(&lvl);
-            play(&cropped_lvl, &dummy_save, 0, TRUE);
+            if (is_player_and_goal_valid(&lvl, goal))
+            {
+                cropped_lvl = crop_lvl(&lvl);
+                play(&cropped_lvl, &dummy_save, 0, TRUE);
+            }
+            else
+            {
+                /* TODO: Print error that level is incomplete. */
+            }
         }
         
         /* Save the level. */
+        if (input == SAVE_LEVEL)
+        {
+            if (is_player_and_goal_valid(&lvl, goal))
+            {
+                /* Player first needs to beat the level, this sets moves. */
+                cropped_lvl = crop_lvl(&lvl);
+                cropped_lvl.moves = play(&cropped_lvl, &dummy_save, 0, TRUE);
+            
+                if (cropped_lvl.moves > 0) 
+                {
+                    write_level(cropped_lvl);
+                }
+                else
+                {
+                    /* TODO: Print message saying that levels needs to be
+                     * beaten to be saved. */
+                }
+            }
+            else
+            {
+                /* TODO: Print error that level is incomplete. */
+            }
+        }
         
         disp_editor(&lvl, cursor);
         Sleep(TIME_BETWEEN_FRAMES);
@@ -2313,14 +2383,19 @@ disp_editor(level_t *level, coord_t cursor)
                 printf("    %c = %d", HOLE_SYMBOL, HOLE);
             }
             
-            if (i == level->rows - 5)
+            if (i == level->rows - 7)
             {
                 printf("  MOVE     = %c%c%c%c", UP, LEFT, DOWN, RIGHT);
             }
         
-            if (i == level->rows-3)
+            if (i == level->rows-5)
             {
                 printf("  PLAY     = %c", PLAY);
+            }
+            
+            if (i == level->rows-3)
+            {
+                printf("  SAVE     = %c", SAVE_LEVEL);
             }
             
             if (i == level->rows-1)
@@ -2459,12 +2534,84 @@ crop_lvl(level_t *src_lvl)
     dst_lvl.p_col = src_lvl->p_col - min_col + padding_cols + 1;
     
     dst_lvl.moves = src_lvl->moves;
-    dst_lvl.nmoves = src_lvl->nmoves;
-    dst_lvl.moving_block_check = src_lvl->moving_block_check;
-    dst_lvl.bomb = src_lvl->bomb;
-    dst_lvl.message_available = src_lvl->message_available;
+    dst_lvl.nmoves = 0;
+    dst_lvl.moving_block_check = moving_block_check(&dst_lvl);
+    dst_lvl.bomb = 0;
+    dst_lvl.message_available = 0;
     
     return dst_lvl;
 }
+
+/*---------------------------------------------------------------------------*/
+/* 
+ * Checks if level has a player and a goal. Does not check if the level can
+ * be beaten.
+ */
+
+int
+is_player_and_goal_valid(level_t *lvl, coord_t goal)
+{
+    if (lvl->board[lvl->p_row][lvl->p_col] == PLAYER &&
+        lvl->board[goal.row][goal.col] == GOAL)
+    {
+        return TRUE;
+    }
+    
+    return FALSE;    
+}
+ 
+/*---------------------------------------------------------------------------*/
+/*
+ * Appends level to end of level editor pack.
+ */
+ 
+void
+write_level(level_t lvl)
+{
+    int i, j;
+    char file_name[MAX_FILE_LEN];
+    FILE *fp = NULL;
+    
+    strcpy(file_name, CUSTOM_LEVEL_FILE);
+    strcat(file_name, LEVEL_FILE);
+
+    fp = fopen(file_name, "r");
+    
+    /* If the file doesn't exist already, create it with the title. */ 
+    if (fp == NULL)
+    {
+        fp = fopen(file_name, "w");
+        fprintf(fp, "%s\n", CUSTOM_LEVEL_NAME);
+    }
+    fclose(fp);
+    
+    /* Open file to append new level on the end. */
+    fp = fopen(file_name, "a");
+    
+    if (fp == NULL)
+    {
+        /* Failed opening file, display error and return. */
+        
+        /* TODO: display error. */
+        return;
+    }
+    
+    fprintf(fp, "\n");
+    fprintf(fp, "%d %d %d\n", lvl.rows, lvl.cols, lvl.moves);
+    
+    for (i = 0; i < lvl.rows; i++)
+    {
+        for (j = 0; j < lvl.cols; j++)
+        {
+            fprintf(fp, "%d ", lvl.board[i][j]);
+        }
+        fprintf(fp, "\n");
+    }
+    
+    fclose(fp);
+    
+    return;
+}
+
 
 /*-----------------------------------END-------------------------------------*/
