@@ -2765,7 +2765,6 @@ editor_message_screen(int message_code)
 char
 editor_decision_screen(int message_code)
 {
-    int junk;
     char input = '\0';
     
     char *quit_editor[] = {
@@ -2805,8 +2804,7 @@ editor_decision_screen(int message_code)
         }
         
         /* Get player input. */
-        junk = scanf("%c", &input);
-        junk++;
+        input = getch();
         
         if (input == YES)
         {
