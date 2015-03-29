@@ -30,5 +30,8 @@
 # Slider Save Files
 *.sav
 
+# Custom
+custom.lvl
+
 # jEdit temporary files
 *~

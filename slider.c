@@ -41,6 +41,7 @@
 #define RESTART             'r'
 #define PLAY                'p'
 #define SAVE_LEVEL          'v'
+#define CLEAR_EDITOR        'c'
 #define YES                 'y'
 #define NO                  'n'
 
@@ -96,6 +97,12 @@
 #define CURSOR_SYMBOL       '+'
 #define PADDING_COLS        3       /* Whitespace between border and first */
 #define PADDING_ROWS        2       /* element. */
+
+#define INCOMPLETE_CODE     1
+#define UNBEATEN_CODE       2
+#define SUCCESSFUL_CODE     3
+#define QUIT_EDITOR_CODE    4
+#define CLEAR_EDITOR_CODE   5
 
 /* Other. */
 #define MAX_NAME_LEN        15
@@ -205,6 +212,8 @@ void move_cursor(coord_t *cursor, char direction);
 level_t crop_lvl(level_t *src_lvl);
 int is_player_and_goal_valid(level_t *lvl, coord_t goal);
 void write_level(level_t lvl);
+void editor_message_screen(int message_code);
+char editor_decision_screen(int message_code);
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -1369,7 +1378,7 @@ how_to_play(void)
 " ",
 " ",
 " ",
-"       Press any key to return to menu",
+"       Press any key to return to menu.",
     NULL};
     
     /* Display the how to play screen. */
@@ -2090,6 +2099,8 @@ level_editor(void)
 {
     char input;
     int number_input;
+    int has_saved = TRUE;       /* True when no blocks have been placed since
+                                 * last save, or when level is empty. */
     save_t dummy_save;
     
     /* Create empty level, with maximum size. */
@@ -2114,10 +2125,18 @@ level_editor(void)
         /* Check for quit. */
         if (input == QUIT)
         {
+            /* If the level has not beed changed since last save, do not need
+             * to ask if user wants to quit. */
+            if (has_saved)
+            {
+                return;
+            }
             /* Check if user really wants to quit, as progress will be lost. */
-            
-            /* Exit the editor. */
-            return;
+            else if (editor_decision_screen(QUIT_EDITOR_CODE) == YES)
+            {
+                /* Exit the editor. */
+                return;
+            }
         }
         
         /* Move the cursor if a direction is input  */
@@ -2126,6 +2145,8 @@ level_editor(void)
         /* Place a board elements. */
         if (number_input == PLAYER)
         {
+            has_saved = FALSE;
+            
             /* Remove old player icon if aplicable. */
             if (lvl.board[lvl.p_row][lvl.p_col] == PLAYER)
             {
@@ -2140,6 +2161,8 @@ level_editor(void)
         
         if (number_input == GOAL)
         {
+            has_saved = FALSE;
+            
             /* Remove old goal icon if aplicable. */
             if (lvl.board[goal.row][goal.col] == GOAL)
             {
@@ -2160,6 +2183,8 @@ level_editor(void)
             number_input == MOVING_BLOCK ||
             number_input == HOLE)
         {
+            has_saved = FALSE;
+            
             lvl.board[cursor.row][cursor.col] = number_input;
         }
             
@@ -2173,7 +2198,8 @@ level_editor(void)
             }
             else
             {
-                /* TODO: Print error that level is incomplete. */
+                /* Level was incomplete, display error. */
+                editor_message_screen(INCOMPLETE_CODE);
             }
         }
         
@@ -2189,16 +2215,39 @@ level_editor(void)
                 if (cropped_lvl.moves > 0) 
                 {
                     write_level(cropped_lvl);
+                    editor_message_screen(SUCCESSFUL_CODE); 
+                    
+                    has_saved = TRUE;
                 }
                 else
                 {
-                    /* TODO: Print message saying that levels needs to be
+                    /* Print message saying that levels needs to be
                      * beaten to be saved. */
+                    editor_message_screen(UNBEATEN_CODE);
                 }
             }
             else
             {
-                /* TODO: Print error that level is incomplete. */
+                /* Level was incomplete, display error. */
+                editor_message_screen(INCOMPLETE_CODE);
+            }
+        }
+        
+        /* Check if the user wants to clear the current level. */
+        if (input == CLEAR_EDITOR)
+        {
+            /* If the level has not beed changed since last save, do not need
+             * to ask if user wants to clear it. */
+            if (has_saved)
+            {
+                lvl = create_empty_lvl();
+                has_saved = TRUE;
+            }
+            /* Check if user really wants to quit, as progress will be lost. */
+            else if (editor_decision_screen(CLEAR_EDITOR_CODE) == YES)
+            {
+                lvl = create_empty_lvl();
+                has_saved = TRUE;
             }
         }
         
@@ -2357,7 +2406,7 @@ disp_editor(level_t *level, coord_t cursor)
         
         /* Display editor instructions on right of board, only if the board is
          * big enough. */
-        if(level->rows >= 12)
+        if(level->rows >= 15)
         {
             if (i == 1)
             {
@@ -2393,9 +2442,14 @@ disp_editor(level_t *level, coord_t cursor)
                 printf("  PLAY     = %c", PLAY);
             }
             
-            if (i == level->rows-3)
+            if (i == level->rows-4)
             {
                 printf("  SAVE     = %c", SAVE_LEVEL);
+            }
+
+            if (i == level->rows-2)
+            {
+                printf("  CLEAR    = %c", CLEAR_EDITOR);
             }
             
             if (i == level->rows-1)
@@ -2613,5 +2667,158 @@ write_level(level_t lvl)
     return;
 }
 
+/*---------------------------------------------------------------------------*/
+/*
+ * Prints error screens for unbeaten level and incomplete level.
+ */
+ 
+void
+editor_message_screen(int message_code)
+{
+    char *incomplete_level[] = {
+" ",
+" ",
+"     ERROR: LEVEL IS INCOMPLETE",
+" ",
+" ",
+"       Level must have player icon and a goal icon to be playable.",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+"       Press any key to return to level editor",
+        NULL};
+
+    char *unbeaten_level[] = {
+" ",
+" ",
+"     SAVE UNSUCCESSFUL",
+" ",
+" ",
+"       Level must be beaten before it can be saved.",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+"       Press any key to return to level editor",
+        NULL};
+    
+    char *save_successful[] = {
+" ",
+" ",
+"     CONGRATULATIONS!",
+" ",
+"       Your level has been sucessfully saved!",
+" ",
+" ",
+"       The target number of moves has been set to the number of moves you",
+"       completed the level in.",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+" ",
+"       Press any key to return to level editor",
+        NULL};
+
+    if (message_code == INCOMPLETE_CODE)
+    {
+        print_message_screen(incomplete_level);
+    }
+    else if (message_code == UNBEATEN_CODE)
+    {
+        print_message_screen(unbeaten_level);
+    }
+    else if (message_code == SUCCESSFUL_CODE)
+    {
+        print_message_screen(save_successful);
+    }
+    
+    /* Wait for player to enter key. */
+    getch();
+    
+    return;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * Displays the yes or no screens for the level editor.
+ */
+ 
+char
+editor_decision_screen(int message_code)
+{
+    int junk;
+    char input = '\0';
+    
+    char *quit_editor[] = {
+" ",
+" ",
+"     QUIT LEVEL EDITOR:",
+" ",
+" ",
+"       Are you sure you want to quit the level editor? (y/n)",
+" ",
+"       Progress on current level will not be saved",
+"  ",
+    NULL};
+
+    char *clear_editor[] = {
+" ",
+" ",
+"     CLEAR LEVEL:",
+" ",
+" ",
+"       Are you sure you want to clear the current level? (y/n)",
+" ",
+"       Progress on current level will not be saved",
+"  ",
+    NULL};
+    
+    while(TRUE)
+    {
+        /* Display the screen. */
+        if (message_code == QUIT_EDITOR_CODE)
+        {
+            print_message_screen(quit_editor);
+        }
+        else if (message_code == CLEAR_EDITOR_CODE)
+        {
+            print_message_screen(clear_editor);
+        }
+        
+        /* Get player input. */
+        junk = scanf("%c", &input);
+        junk++;
+        
+        if (input == YES)
+        {
+            return YES;
+        }
+        else if (input == NO)
+        {
+            return NO;
+        }
+    }
+ 
+    return NO;
+}
 
 /*-----------------------------------END-------------------------------------*/
