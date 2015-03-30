@@ -1365,7 +1365,7 @@ how_to_play(void)
 " ",
 "     HOW TO PLAY:",
 " ",
-"       You are Slider, Get X!",
+"       You are Slider (O), get the tresure (X)!",
 " ",
 "     CONTROLS:",
 " ",
